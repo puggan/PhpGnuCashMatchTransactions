@@ -11,22 +11,77 @@
 SELECT
 	bank_transactions.account,
 	accounts.name,
+	MAX(IF(bank_tid IS NULL, bank_transactions.bdate, NULL)) AS edate,
+	MAX(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS fdate,
 	COUNT(DISTINCT IF(bank_tid IS NULL, bank_transactions.bank_t_row, NULL)) AS erows,
 	COUNT(DISTINCT bank_transactions.bank_t_row) AS rows
 FROM bank_transactions
 	INNER JOIN accounts ON (accounts.code = bank_transactions.account)
-WHERE bdate >= '2016-09-01' 
+WHERE bdate >= '2016-09-01'
 GROUP BY account
 SQL_BLOCK;
-		$links = array();
+
+		echo <<<HTML_BLOCK
+<html>
+	<head>
+		<title>Select bank account</title>
+		<style type="text/css">
+			TH, TD {border: solid gray 1px; padding: 5px;}
+			TD {text-align: right;}
+			TD:first-child {text-align: left;}
+			TR.odd {background-color: #FFFFCC;}
+			TR.even {background-color: #CCFFFF;}
+		</style>
+	</head>
+	<body>
+		<h1>Select bank account</h1>
+		<table>
+			<thead>
+				<tr>
+					<th>Account Name</th>
+					<th>Last Empty</th>
+					<th>Last Connected</th>
+					<th>Empty</th>
+					<th>Total</th>
+					<th>% Empty</th>
+				</tr>
+			</thead>
+			<tbody>
+
+HTML_BLOCK;
+
+		$odd = FALSE;
 		/** @var table_db_result_account_name_rows $row */
 		foreach($db->objects($query) as $row)
 		{
+			$row->prows = (int) (100 * $row->erows / $row->rows);
+			/** @var table_db_result_account_name_rows $row_html */
+			$row_html = (object) array_map('htmlentities', (array) $row);
+
+
+			$row_class = ($odd = !$odd) ? 'odd' : 'even';
+			echo <<<HTML_BLOCK
+				<tr class="{$row_class}">
+					<td><a href="?account={$row_html->account}">{$row_html->name}</a></td>
+					<td>{$row_html->edate}</td>
+					<td>{$row_html->fdate}</td>
+					<td>{$row_html->erows}</td>
+					<td>{$row_html->rows}</td>
+					<td>{$row_html->prows} %</td>
+				</tr>
+
+HTML_BLOCK;
+
 			$links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities($row->name) . "</a> ({$row->erows} / {$row->rows})";
 		}
 
-		$ul = "<ul><li>" . implode("</li><li>", $links) . "</li></ul>";
-		echo "<html><head><title>Select bank account</title></head><body><h1>Select bank account</h1>{$ul}<p><a href=\"./bank_import.php\">Import from bank</a></p></body></html>";
+		echo <<<HTML_BLOCK
+			</tbody>
+		</table>
+		<p><a href="./bank_import.php">Import from bank</a></p>
+	</body>
+</html>
+HTML_BLOCK;
 		die();
 	}
 
@@ -112,14 +167,25 @@ SQL_BLOCK;
 	}
 	$options = implode(PHP_EOL, $options);
 
+	if(isset($_GET['skip']))
+	{
+		$limit = "20 OFFSET " . (int) $_GET['skip'];
+		$skip_url_html = "&amp;skip=" . (int) $_GET['skip'];
+	}
+	else
+	{
+		$limit = 500;
+		$skip_url_html = '';
+	}
+
 	$query = <<<SQL_BLOCK
 SELECT *
 FROM bank_transactions
 WHERE bank_tid IS NULL
-	AND bdate >= '2016-09-01' 
+	AND bdate >= '2016-09-01'
 	AND account = {$selected_account}
 ORDER BY bdate DESC
-LIMIT 500
+LIMIT {$limit}
 SQL_BLOCK;
 
 	echo <<<HTML_BLOCK
@@ -158,7 +224,7 @@ HTML_BLOCK;
 		$text = htmlentities($bt_row->vtext);
 
 		echo <<<HTML_BLOCK
-		<form method="post" action="?account={$selected_account}&amp;row={$bt_row->bank_t_row}">
+		<form method="post" action="?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}">
 			<fieldset>
 				<legend>{$bt_row->amount} kr @ {$bt_row->bdate}</legend>
 
@@ -331,6 +397,10 @@ class table_db_result_account_name_rows
 	public $account;
 	public $name;
 	public $rows;
+	public $erows;
+	public $prows;
+	public $edate;
+	public $fdate;
 }
 
 class table_db_result_row_value_date_description_guid
