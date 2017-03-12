@@ -212,6 +212,11 @@ SQL_BLOCK;
 		<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" />
 		<style type="text/css">
 			SELECT {min-width: 300px;}
+			FIELDSET.inc.odd {background-color: #CCFFCC;}
+			FIELDSET.inc.even {background-color: #EEFFEE;}
+			FIELDSET.dec.odd {background-color: #FFCCCC;}
+			FIELDSET.dec.even {background-color: #FFEEEE;}
+			FIELDSET.dec {background-color: #FF0000;}
 		</style>
 	</head>
 	<body>
@@ -220,6 +225,8 @@ SQL_BLOCK;
 HTML_BLOCK;
 
 	$current_account_option = "<option value=\"{$selected_account}\">{$account_names_html[$selected_account]}</option>";
+
+	$odd = FALSE;
 
 	/** @var table_bank_transactions $bt_row */
 	foreach($db->objects($query) as $bt_row)
@@ -238,15 +245,26 @@ HTML_BLOCK;
 		}
 
 		$text = htmlentities($bt_row->vtext);
+		$class = (($odd = !$odd) ? 'odd' : 'even') . ' ' . ($bt_row->amount > 0 ? 'inc' : 'dec');
+
+		if(preg_match("#/([0-9][0-9]-[0-9][0-9]-[0-9][0-9])$#", $text, $m))
+		{
+			$text = trim(substr($text, 0, -9));
+			$date = 20 . $m[1];
+		}
+		else
+		{
+			$date = $bt_row->bdate;
+		}
 
 		echo <<<HTML_BLOCK
 		<form method="post" action="?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}">
-			<fieldset>
+			<fieldset class="{$class}">
 				<legend>{$bt_row->amount} kr @ {$bt_row->bdate}</legend>
 
 				<label>
 					<span>Date:</span>
-					<input type="date" name="date" value="{$bt_row->bdate}" />
+					<input type="date" name="date" value="{$date}" />
 				</label>
 
 				<label>
