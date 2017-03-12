@@ -137,6 +137,53 @@
 					yield $row;
 				}
 			}
+
+			$resource->free();
+		}
+
+		function objects($query, $index = NULL, $class_name = NULL)
+		{
+			$result = array();
+			$resource = $this->query($query);
+
+			if(!is_a($resource, "mysqli_result")) return FALSE;
+
+			while(NULL !== ($row = $resource->fetch_object($class_name ?: 'stdClass')))
+			{
+				if($index)
+				{
+					$result[$row->$index] = $row;
+				}
+				else
+				{
+					$result[] = $row;
+				}
+			}
+
+			$resource->free();
+
+			return $result;
+		}
+
+		function g_objects($query, $index = NULL, $class_name = NULL)
+		{
+			$resource = $this->query($query);
+
+			if(!is_a($resource, "mysqli_result")) return FALSE;
+
+			while(NULL !== ($row = $resource->fetch_object($class_name ?: 'stdClass')))
+			{
+				if($index)
+				{
+					yield $row->$index => $row;
+				}
+				else
+				{
+					yield $row;
+				}
+			}
+
+			$resource->free();
 		}
 
 		function get($query, $default = FALSE)
@@ -146,6 +193,29 @@
 			if(!is_a($resource, "mysqli_result")) return FALSE;
 
 			$row = $resource->fetch_array(MYSQLI_ASSOC);
+
+			$resource->free();
+
+			if(!$row)
+			{
+				return $default;
+			}
+
+			if(is_array($row) AND count($row) == 1)
+			{
+				return array_values($row)[0];
+			}
+
+			return $row;
+		}
+
+		function object($query, $default = FALSE, $class_name = NULL)
+		{
+			$resource = $this->query($query);
+
+			if(!is_a($resource, "mysqli_result")) return FALSE;
+
+			$row = $resource->fetch_object($class_name ?: 'stdClass');
 
 			$resource->free();
 

@@ -52,7 +52,7 @@ HTML_BLOCK;
 
 		$odd = FALSE;
 		/** @var table_db_result_account_name_rows $row */
-		foreach($db->objects($query) as $row)
+		foreach($db->g_objects($query) as $row)
 		{
 			$row->prows = (int) (100 * $row->erows / $row->rows);
 			/** @var table_db_result_account_name_rows $row_html */
