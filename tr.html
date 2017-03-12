@@ -1,0 +1,151 @@
+<html>
+	<head>
+		<title>Add Transactions</title>
+		<meta charset="utf-8" />
+		<script type="text/javascript">
+			function api(data, callback, element)
+			{
+				console.log('api()', data);
+				var a = new XMLHttpRequest();
+				a.onreadystatechange = function()
+				{
+					if (this.readyState == 4 && this.status == 200) 
+					{
+						// console.log(this.responseText);
+						// console.log(JSON.parse(this.responseText));
+						callback(JSON.parse(this.responseText), element);
+					}
+				};
+				a.open("POST", "api.php", true);
+				a.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+				a.send("data=" + btoa(JSON.stringify(data)));
+			}
+
+			function load_accounts()
+			{
+				var u = document.getElementById('u').value;
+				var p = document.getElementById('p').value;
+				document.getElementById('d').value = (new Date()).toISOString().split('T')[0];
+				api(
+					{
+						login: {username: u, password: p}, 
+						func: "appFetchAccounts",
+					},
+					_load_accounts
+				);
+			}
+
+			function _load_accounts(r, e)
+			{
+				if(!r.accounts) return false;
+				if(r.accounts.length < 2) return false;
+
+				var en = document.createElement('textarea');
+				var fe = document.getElementById('f');
+				var te = document.getElementById('t');
+				var f_before = fe.value;
+				var t_before = te.value;
+				fe.options.length = 0;
+				te.options.length = 0;
+
+				for (var ai = 0; ai < r.accounts.length; ai++)
+				{
+					var f_opt = document.createElement('option');
+					var t_opt = document.createElement('option');
+					f_opt.value = r.accounts[ai].guid;
+					t_opt.value = r.accounts[ai].guid;
+					en.textContent = r.accounts[ai].simple_name;
+					f_opt.innerHTML = en.innerHTML;
+					t_opt.innerHTML = en.innerHTML;
+					fe.appendChild(f_opt);
+					te.appendChild(t_opt);
+				}
+				
+				fe.value = f_before;
+				if(fe.selectedIndex < 1)
+				{
+					fe.selectedIndex = 0;
+				}
+				te.value = t_before;
+				if(te.selectedIndex < 1)
+				{
+					te.selectedIndex = 0;
+				}
+			}
+
+			function add_tr()
+			{
+				var u = document.getElementById('u').value;
+				var p = document.getElementById('p').value;
+				var f = document.getElementById('f').value;
+				var t = document.getElementById('t').value;
+				var n = document.getElementById('n').value;
+				// UTF-8 problem
+				n = unescape(encodeURIComponent(n));
+				var a = document.getElementById('a').value;
+				var d = document.getElementById('d').value;
+				api(
+					{
+						login: {username: u, password: p}, 
+						func: "appCreateTransaction",
+						debit_guid: t,
+						credit_guid: f,
+						amount: a,
+						description: n,
+						date: d,
+					}, 
+					_add_tr
+				);
+			}
+
+			function _add_tr(r, e)
+			{
+				console.log(r);
+				alert(r.message);
+			}
+		</script>
+		<style type="text/css">
+			label, input, select
+			{
+				display: block;
+				margin-bottom: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Add Transaction</h1>
+		<form accept-charset="utf-8">
+			<label>
+				<span>Username:</span><br />
+				<input id="u" type="text" />
+			</label>
+			<label>
+				<span>Password:</span><br />
+				<input id="p" type="password" />
+			</label>
+			<input type="button" value="Load accounts" onclick="load_accounts()" /><br />
+			<label>
+				<span>From account (credit):</span><br />
+				<select id="f"><option value="">(accounts not loaded)</option></select>
+			</label>
+			<label>
+				<span>To account (debit):</span><br />
+				<select id="t"><option value="">(accounts not loaded)</option></select>
+			</label>
+			<!-- notes -->
+			<label>
+				<span>Description</span><br />
+				<input id="n" />
+			</label>
+			<label>
+				<span>Amount</span><br />
+				<input id="a" />
+			</label>
+			<label>
+				<span>Date</date><br />
+				<input id="d" />
+			</label>
+			<input type="button" value="Add transaction" onclick="add_tr()" /><br />
+		</form>
+	</body>
+</html>
