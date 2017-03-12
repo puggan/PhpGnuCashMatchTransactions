@@ -171,11 +171,26 @@ SQL_BLOCK;
 	{
 		$limit = "20 OFFSET " . (int) $_GET['skip'];
 		$skip_url_html = "&amp;skip=" . (int) $_GET['skip'];
+		$filter = '';
+	}
+	else if(isset($_GET['q']))
+	{
+		$filter = 'AND bank_transactions.vtext LIKE ' . $db->quote('%' . $_GET['q'] . '%');
+		$limit = 50000;
+		$skip_url_html = '&amp;q=' . htmlentities(urlencode($_GET['q']));
+	}
+	else if(isset($_GET['a']))
+	{
+		$amount = (int) $_GET['a'];
+		$filter = 'AND ((bank_transactions.amount BETWEEN ' . ($amount - 5) . ' AND ' . ($amount + 5) . ') OR (bank_transactions.amount BETWEEN ' . (0 - $amount - 5) . ' AND ' . (5 - $amount) . '))';
+		$limit = 50000;
+		$skip_url_html = '&amp;a=' . $amount;
 	}
 	else
 	{
 		$limit = 500;
 		$skip_url_html = '';
+		$filter = '';
 	}
 
 	$query = <<<SQL_BLOCK
@@ -184,6 +199,7 @@ FROM bank_transactions
 WHERE bank_tid IS NULL
 	AND bdate >= '2016-09-01'
 	AND account = {$selected_account}
+	{$filter}
 ORDER BY bdate DESC
 LIMIT {$limit}
 SQL_BLOCK;
