@@ -1,5 +1,7 @@
 <?php
 
+require_once(__DIR__ . "/db.php");
+
 class Auth {
 
     // *** app credentials ***
@@ -12,5 +14,16 @@ class Auth {
     private $sPassword = 'gnucash';
     private $sDatabase = 'gnucash';
     private $sDatabaseServer = 'localhost';
+    private $sPort = NULL;
     // ***
+
+    public function db()
+    {
+        return new db($this->sDatabase, $this->sUsername, $this->sPassword, $this->sDatabaseServer, $this->sPort);
+    }
+
+    public static function new_db()
+    {
+        return (new Auth())->db();
+    }
 }
