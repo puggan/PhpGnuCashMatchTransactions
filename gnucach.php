@@ -42,10 +42,31 @@
 
 		public function runQuery($sSql, $aParameters = array(), $bReturnFirst = FALSE)
 		{
+			$this->lastQuery = strtr($sSql, $aParameters);
 			try
 			{
 				$q = $this->con->prepare($sSql);
-				$q->execute($aParameters);
+				$result = $q->execute($aParameters);
+				$query_type = explode(' ', preg_replace("#\\s+#", ' ', $sSql))[0];
+				switch(strtoupper($query_type))
+				{
+					case 'INSERT':
+					{
+						return $result;
+					}
+					case 'UPDATE':
+					case 'DELETE':
+					{
+						return $result;
+					}
+					case 'USE':
+					case 'START':
+					case 'ROLLBACK':
+					case 'COMMIT':
+					{
+						return $result;
+					}
+				}
 				$q->setFetchMode(PDO::FETCH_ASSOC);
 				$aReturn = array();
 				while($aRow = $q->fetch())
@@ -645,4 +666,3 @@ SQL_BLOCK;
 			return $aReturn;
 		}
 	}
-
