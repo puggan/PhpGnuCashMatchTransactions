@@ -254,70 +254,126 @@ SQL_BLOCK;
 
 		public function createTransaction($sDebitGUID, $sCreditGUID, $fAmount, $sName, $sDate, $sMemo)
 		{
+			$this->lastTxGUID = NULL;
 			if($this->isLocked())
 			{
 				return 'Database is locked';
 			}
 			// Transaction GUID, same for both debit and credit entries in transactions.
 			$sTransactionGUID = $this->getNewGUID();
-			$this->lastTxGUID = $sTransactionGUID;
 			if(!$sTransactionGUID)
 			{
 				return 'Failed to get a new transaction GUID.';
 			}
-			$aDebbitAccount = $this->getAccountInfo($sDebitGUID);
-			if(!$aDebbitAccount)
+			if($sDebitGUID AND is_array($sDebitGUID))
 			{
-				return 'Failed to retrieve account for GUID: ' . $sDebitGUID . '.';
+				$debitAmount = 0;
+				$aaDebbitAccounts = array();
+				foreach($sDebitGUID as $sguid => $svalue)
+				{
+					$debitAmount += $svalue;
+					$aaDebbitAccounts[$sguid] = $this->getAccountInfo($sguid);
+					if(!$aaDebbitAccounts[$sguid])
+					{
+						return 'Failed to retrieve account for GUID: ' . $sguid . '.';
+					}
+					$aaDebbitAccounts[$sguid]['amount'] = $svalue;
+				}
+				$aDebbitAccount = reset($aaDebbitAccounts);
 			}
-			$aCreditAccount = $this->getAccountInfo($sCreditGUID);
-			if(!$aCreditAccount)
+			else
 			{
-				return 'Failed to retrieve account for GUID: ' . $sCreditGUID . '.';
+				$debitAmount = $fAmount;
+				$aDebbitAccount = $this->getAccountInfo($sDebitGUID);
+				if(!$aDebbitAccount)
+				{
+					return 'Failed to retrieve account for GUID: ' . $sDebitGUID . '.';
+				}
+				$aaDebbitAccounts = array();
+				$aaDebbitAccounts[$sDebitGUID] = $aDebbitAccount;
+				$aaDebbitAccounts[$sDebitGUID]['amount'] = $fAmount;
 			}
+			if($sCreditGUID AND is_array($sCreditGUID))
+			{
+				$creditAmount = 0;
+				$aaCreditAccount = array();
+				foreach($sCreditGUID as $sguid => $svalue)
+				{
+					$creditAmount += $svalue;
+					$aaCreditAccount[$sguid] = $this->getAccountInfo($sguid);
+					if(!$aaCreditAccount[$sguid])
+					{
+						return 'Failed to retrieve account for GUID: ' . $sguid . '.';
+					}
+					$aaCreditAccount[$sguid]['amount'] = $svalue;
+				}
+				$aCreditAccount = reset($aaCreditAccount);
+			}
+			else
+			{
+				$creditAmount = $fAmount;
+				$aCreditAccount = $this->getAccountInfo($sCreditGUID);
+				if(!$aCreditAccount)
+				{
+					return 'Failed to retrieve account for GUID: ' . $sCreditGUID . '.';
+				}
+				$aaCreditAccount = array();
+				$aaCreditAccount[$sCreditGUID] = $aCreditAccount;
+				$aaCreditAccount[$sCreditGUID]['amount'] = $fAmount;
+			}
+
+			if($creditAmount != $debitAmount)
+			{
+				return "unbalanced";
+			}
+
 			if($aDebbitAccount['commodity_guid'] == $aCreditAccount['commodity_guid'])
 			{
 				$sCurrencyGUID = $aDebbitAccount['commodity_guid'];
-				$sCurrencySCU = max($aDebbitAccount['commodity_scu'], $aCreditAccount['commodity_scu']);
-				$fDebbitPrice = 1;
-				$fCreditPrice = 1;
+				$sCurrencySCU = $aDebbitAccount['commodity_scu'];
 			}
 			else
 			{
 				$aRootAccount = $this->getAccountCommodity();
 				$sCurrencyGUID = $aRootAccount['commodity_guid'];
 				$sCurrencySCU = $aRootAccount['commodity_scu'];
+			}
 
-				if($aDebbitAccount['commodity_guid'] == $aRootAccount['commodity_guid'])
+			foreach(array_keys($aaDebbitAccounts) as $aguid)
+			{
+				if($aaDebbitAccounts[$aguid]['commodity_guid'] == $sCurrencyGUID)
 				{
-					$fDebbitPrice = 1;
+					$aaDebbitAccounts[$aguid]['commodity_scale'] = 1;
 				}
 				else
 				{
-					$aDebbitPrice = $this->getCommodityPrice($aDebbitAccount['commodity_guid'], $sCurrencyGUID, $sDate);
+					$aDebbitPrice = $this->getCommodityPrice($aaDebbitAccounts[$aguid]['commodity_guid'], $sCurrencyGUID, $sDate);
 					if($aDebbitPrice)
 					{
-						$fDebbitPrice = $aDebbitPrice['value_num'] / $aDebbitPrice['value_denom'];
+						$aaDebbitAccounts[$aguid]['commodity_scale'] = $aDebbitPrice['value_num'] / $aDebbitPrice['value_denom'];
 					}
 					else
 					{
-						$fDebbitPrice = 1;
+						$aaDebbitAccounts[$aguid]['commodity_scale'] = 1;
 					}
 				}
-				if($aCreditAccount['commodity_guid'] == $aRootAccount['commodity_guid'])
+			}
+			foreach(array_keys($aaCreditAccount) as $aguid)
+			{
+				if($aaCreditAccount[$aguid]['commodity_guid'] == $sCurrencyGUID)
 				{
-					$fCreditPrice = 1;
+					$aaCreditAccount[$aguid]['commodity_scale'] = 1;
 				}
 				else
 				{
-					$aCreditPrice = $this->getCommodityPrice($aCreditAccount['commodity_guid'], $sCurrencyGUID, $sDate);
-					if($aCreditPrice)
+					$aDebbitPrice = $this->getCommodityPrice($aaCreditAccount[$aguid]['commodity_guid'], $sCurrencyGUID, $sDate);
+					if($aDebbitPrice)
 					{
-						$fCreditPrice = $aCreditPrice['value_num'] / $aCreditPrice['value_denom'];
+						$aaCreditAccount[$aguid]['commodity_scale'] = $aDebbitPrice['value_num'] / $aDebbitPrice['value_denom'];
 					}
 					else
 					{
-						$fCreditPrice = 1;
+						$aaCreditAccount[$aguid]['commodity_scale'] = 1;
 					}
 				}
 			}
@@ -326,18 +382,11 @@ SQL_BLOCK;
 			{
 				return 'Currency GUID is empty.';
 			}
-			$sSplitDebitGUID = $this->getNewGUID();
-			if(!$sSplitDebitGUID)
-			{
-				return 'Failed to get a new GUID for split 1.';
-			}
-			$sSplitCreditGUID = $this->getNewGUID();
-			if(!$sSplitCreditGUID)
-			{
-				return 'Failed to get a new GUID for split 2.';
-			}
+
 			// Time may change during the execution of this function.
 			$sEnterDate = date('Y-m-d H:i:s', time());
+
+			$this->runQuery("START TRANSACTION");
 
 			$this->runQuery(
 				"INSERT INTO `transactions` (`guid`, `currency_guid`, `num`, `post_date`, `enter_date`, `description`) VALUES (:guid, :currency_guid, :num, :post_date, :enter_date, :description);",
@@ -350,69 +399,83 @@ SQL_BLOCK;
 					':description' => $sName
 				)
 			);
+
 			$sTransactionMessage = $this->eException->getMessage();
 			$aTransaction = $this->getTransaction($sTransactionGUID);
-			$this->runQuery(
-				"INSERT INTO `splits` (`guid`, `tx_guid`, `account_guid`, `memo`, `action`, `reconcile_state`, `reconcile_date`, `value_num`, `value_denom`, `quantity_num`, `quantity_denom`) VALUES (:guid, :tx_guid, :account_guid, :memo, :action, :reconcile_state, :reconcile_date, :value_num, :value_denom, :quantity_num, :quantity_denom);",
+			if(!$aTransaction)
+			{
+				$this->runQuery("ROLLBACK");
+				$sError = 'Error:' . ($this->getErrorMessage() ? ' ' . $this->getErrorMessage() . '.' : '');
+				$sError .= ' Failed to create transaction record: <b>' . $sTransactionMessage . '</b>';
+				return $sError;
+			}
+
+			foreach($aaDebbitAccounts as $aguid => $account)
+			{
+				$sSplitDebitGUID = $this->addSplit($sTransactionGUID, $aguid, $account['amount'], $sCurrencySCU, $account['commodity_scale'], $account['commodity_scu'], $sMemo);
+				$sMemo = '';
+				if(!$sSplitDebitGUID)
+				{
+					$this->runQuery("ROLLBACK");
+					return 'Failed to add split. (' . $aguid . ') ' . $this->eException->getMessage();
+				}
+			}
+			foreach($aaCreditAccount as $aguid => $account)
+			{
+				$sSplitCreditGUID = $this->addSplit($sTransactionGUID, $aguid, -$account['amount'], $sCurrencySCU, $account['commodity_scale'], $account['commodity_scu'], $sMemo);
+				$sMemo = '';
+				if(!$sSplitCreditGUID)
+				{
+					$this->runQuery("ROLLBACK");
+					return 'Failed to add split. (' . $aguid . ') ' . $this->eException->getMessage();
+				}
+			}
+
+			$this->lastTxGUID = $sTransactionGUID;
+			$this->runQuery("COMMIT");
+			return '';
+		}
+
+		public function addSplit($sTransactionGUID, $sAccountGUID, $fAmount, $sCurrencySCU = 100, $fCommodityScale = 1, $fCommoditySCU = 100, $sMemo = '')
+		{
+			$sSplitGUID = $this->getNewGUID();
+			if(!$sSplitGUID)
+			{
+				return FALSE;
+			}
+
+			$query = <<<SQL_BLOCK
+INSERT INTO splits
+SET
+	guid = :guid,
+	tx_guid = :tx_guid,
+	account_guid = :account_guid,
+	memo = :memo,
+	reconcile_state = :reconcile_state,
+	reconcile_date = :reconcile_date,
+	action = :action,
+	value_num = :value_num,
+	value_denom = :value_denom,
+	quantity_num = :quantity_num,
+	quantity_denom = :quantity_denom
+SQL_BLOCK;
+			$result = $this->runQuery(
+				$query,
 				array(
-					':guid' => $sSplitDebitGUID,
+					':guid' => $sSplitGUID,
 					':tx_guid' => $sTransactionGUID,
-					':account_guid' => $sDebitGUID,
+					':account_guid' => $sAccountGUID,
 					':memo' => $sMemo,
 					':reconcile_state' => 'n',
 					':reconcile_date' => NULL,
 					':action' => '',
 					':value_num' => round($fAmount * $sCurrencySCU),
 					':value_denom' => $sCurrencySCU,
-					':quantity_num' => round($fAmount * $aDebbitAccount['commodity_scu'] / $fDebbitPrice),
-					':quantity_denom' => $aDebbitAccount['commodity_scu']
+					':quantity_num' => round($fAmount * $fCommoditySCU / $fCommodityScale),
+					':quantity_denom' => $fCommoditySCU
 				)
 			);
-			$sDebitMessage = $this->eException->getMessage();
-			$aSplitDebit = $this->getSplit($sSplitDebitGUID);
-			$this->runQuery(
-				"INSERT INTO `splits` (`guid`, `tx_guid`, `account_guid`, `memo`, `action`, `reconcile_state`, `reconcile_date`, `value_num`, `value_denom`, `quantity_num`, `quantity_denom`) VALUES (:guid, :tx_guid, :account_guid, :memo, :action, :reconcile_state, :reconcile_date, :value_num, :value_denom, :quantity_num, :quantity_denom);",
-				array(
-					':guid' => $sSplitCreditGUID,
-					':tx_guid' => $sTransactionGUID,
-					':account_guid' => $sCreditGUID,
-					':memo' => '',
-					':reconcile_state' => 'n',
-					':reconcile_date' => NULL,
-					':action' => '',
-					':value_num' => -1 * round($fAmount * $sCurrencySCU),
-					':value_denom' => $sCurrencySCU,
-					':quantity_num' => -1 * round($fAmount * $aCreditAccount['commodity_scu'] / $fCreditPrice),
-					':quantity_denom' => $aCreditAccount['commodity_scu']
-				)
-			);
-			$sCreditMessage = $this->eException->getMessage();
-			$aSplitCredit = $this->getSplit($sSplitCreditGUID);
-
-			if($aTransaction and $aSplitDebit and $aSplitCredit)
-			{
-				return '';
-			}
-			// Something happened, delete what was entered.
-			$this->deleteTransaction($sTransactionGUID);
-			if(!$aTransaction or !$aSplitDebit or !$aSplitCredit)
-			{
-				$sError = 'Error:' . ($this->getErrorMessage() ? ' ' . $this->getErrorMessage() . '.' : '');
-				if(!$aTransaction)
-				{
-					$sError .= ' Failed to create transaction record: <b>' . $sTransactionMessage . '</b>';
-				}
-				if(!$aSplitDebit)
-				{
-					$sError .= ' Failed to create debit split: <b>' . $sDebitMessage . '</b>';
-				}
-				if(!$aSplitCredit)
-				{
-					$sError .= ' Failed to create credit split: <b>' . $sCreditMessage . '</b>';
-				}
-				return $sError;
-			}
-			return 'Some other error.';
+			return $result ? $sSplitGUID : FALSE;
 		}
 
 		public function deleteTransaction($sTransactionGUID)
