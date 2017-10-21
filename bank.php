@@ -92,6 +92,7 @@ HTML_BLOCK;
 		<p><a href="./bank_import.php">Import from bank</a></p>
 		<p><a href="./bank_odd_matches.php">Odd Matches</a></p>
 		<p><a href="./bank_missing.php">Missing at bank</a></p>
+		<p><a href="./food.php">Find dublicate lunches</a></p>
 	</body>
 </html>
 HTML_BLOCK;
