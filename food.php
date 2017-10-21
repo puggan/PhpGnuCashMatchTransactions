@@ -36,6 +36,13 @@ ini_set('display_errors', 1);
 			H1 {font-size: 16pt; margin: 0;}
 			H2 {font-size: 14pt; margin: 0;}
 			LI {font-size: 12pt; margin: 0;}
+			TABLE, TR, TH, TD {border: solid 1px rgba(0,0,0,0.2);}
+			TABLE {margin-bottom: 10px;}
+			CAPTION {text-align: left;}
+			TD {padding-left: 10px;}
+			TD:nth-child(1) {text-align: right; padding-right: 10px;}
+			TBODY TR:nth-child(odd) {background: rgba(255,255,0,0.1);}
+			TBODY TR:nth-child(even) {background: rgba(0,0,255,0.1);}
 		</style>
 	</head>
 	<body>
@@ -70,14 +77,6 @@ SQL_BLOCK;
 	/** @var table_db_result_row_odd_match $match_row */
 	foreach($db->objects($query) as $row)
 	{
-		if(!$count++)
-		{
-			echo <<<HTML_BLOCK
-		<ul>
-						
-HTML_BLOCK;
-		}
-
 		$row->day = substr($row->post_date, 0, 10);
 		$row->value = round($row->value_num / $row->value_denom, 2);
 
@@ -85,8 +84,8 @@ HTML_BLOCK;
 		{
 			if($day_count) {
 				echo <<<HTML_BLOCK
-				</ul>
-			</li>
+				</tbody>
+			</table>
 						
 HTML_BLOCK;
 			}
@@ -94,9 +93,18 @@ HTML_BLOCK;
 			$last_day = $row->day;
 			$weekday = date("l", strtotime($row->day));
 			echo <<<HTML_BLOCK
-			<li>
-				<h2>{$last_day}, {$weekday}</h2>
-				<ul>
+			<table>
+				<caption><h2>{$last_day}, {$weekday}</h2></caption>
+				<colgroup>
+					<col style="width: 100px;" />
+					<col style="width: 200px;" />
+					<col style="width: 300px;" />
+					<col style="width: 250px;" />
+				</colgroup>
+				<thead>
+					<tr><th>Value</th><th>Account</th><th>Description</th><th>Other Account(s)</th></tr>
+				</thead>
+				<tbody>
 						
 HTML_BLOCK;
 		}
@@ -106,17 +114,16 @@ HTML_BLOCK;
 		$htmljson = htmlentities($json);
 		$htmlrow = (object) array_map('htmlentities', (array) $row);
 		echo <<<HTML_BLOCK
-					<li>{$htmlrow->value} kr, {$htmlrow->name}, {$htmlrow->description} [{$htmlrow->name2}]</li>
+					<tr><td>{$htmlrow->value} kr</td><td>{$htmlrow->name}</td><td>{$htmlrow->description}</td><td>{$htmlrow->name2}</td></tr>
 
 HTML_BLOCK;
 	}
 
-	if($count)
+	if($day_count)
 	{
 		echo <<<HTML_BLOCK
-				</ul>
-			</li>
-		</ul>
+				</tbody>
+			</table>
 
 HTML_BLOCK;
 	}
