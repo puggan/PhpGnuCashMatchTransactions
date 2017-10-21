@@ -14,12 +14,10 @@ ini_set('display_errors', 1);
 SELECT
 	bank_transactions.account,
 	accounts.name,
-	MAX(IF(bank_tid IS NULL, bank_transactions.bdate, NULL)) AS edate,
-	MAX(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS fdate,
-	SUM(IF(bank_tid IS NULL, GREATEST(bank_transactions.amount, 0), NULL)) AS missingPos,
-	SUM(IF(bank_tid IS NULL, LEAST(bank_transactions.amount, 0), NULL)) AS missingNeg,
+	MIN(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS f_date,
+	MAX(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS t_date,
 	COUNT(DISTINCT IF(bank_tid IS NULL, bank_transactions.bank_t_row, NULL)) AS erows,
-	COUNT(DISTINCT bank_transactions.bank_t_row) AS rows
+	accounts.guid AS account_guid
 FROM bank_transactions
 	INNER JOIN accounts ON (accounts.code = bank_transactions.account)
 WHERE bdate >= '2016-09-01'
@@ -44,13 +42,10 @@ SQL_BLOCK;
 			<thead>
 				<tr>
 					<th>Account Name</th>
-					<th>Last Empty</th>
+					<th>First Connected</th>
 					<th>Last Connected</th>
 					<th>Empty</th>
-					<th>Total</th>
-					<th>% Empty</th>
-					<th>Income</th>
-					<th>Fees</th>
+					<th>Missing</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -61,29 +56,37 @@ HTML_BLOCK;
 		/** @var table_db_result_account_name_rows $row */
 		foreach($db->g_objects($query) as $row)
 		{
-			$row->prows = (int) (100 * $row->erows / $row->rows);
-			$row->pos = (($row->missingPos > 0) ? number_format($row->missingPos, 2, '.', ' ') : '');
-			$row->neg = (($row->missingNeg < 0) ? number_format($row->missingNeg, 2, '.', ' ') : '');
 			/** @var table_db_result_account_name_rows $row_html */
 			$row_html = (object) array_map('htmlentities', (array) $row);
 
+			$account_guid_sql = $db->quote($row->account_guid);
+			$f_date_sql = $db->quote($row->f_date);
+			$t_date_sql = $db->quote($row->t_date);
+			$missing_query = <<<SQL_BLOCK
+SELECT COUNT(*) AS c
+FROM splits 
+	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
+	LEFT JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
+WHERE bank_transactions.bank_tid IS NULL
+	AND splits.account_guid = {$account_guid_sql}
+	AND transactions.post_date BETWEEN {$f_date_sql} AND {$t_date_sql}
+SQL_BLOCK;
+
+			$missing = (int) $db->get($missing_query);
 
 			$row_class = ($odd = !$odd) ? 'odd' : 'even';
 			echo <<<HTML_BLOCK
 				<tr class="{$row_class}">
 					<td><a href="?account={$row_html->account}">{$row_html->name}</a></td>
-					<td>{$row_html->edate}</td>
-					<td>{$row_html->fdate}</td>
+					<td>{$row_html->f_date}</td>
+					<td>{$row_html->t_date}</td>
 					<td>{$row_html->erows}</td>
-					<td>{$row_html->rows}</td>
-					<td>{$row_html->prows} %</td>
-					<td>{$row_html->pos}</td>
-					<td>{$row_html->neg}</td>
+					<td>{$missing}</td>
 				</tr>
 
 HTML_BLOCK;
 
-			$links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities($row->name) . "</a> ({$row->erows} / {$row->rows})";
+			$links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities($row->name) . "</a> ({$missing})";
 		}
 
 		echo <<<HTML_BLOCK
@@ -91,7 +94,7 @@ HTML_BLOCK;
 		</table>
 		<p><a href="./bank_import.php">Import from bank</a></p>
 		<p><a href="./bank_odd_matches.php">Odd Matches</a></p>
-		<p><a href="./bank_missing.php">Missing at bank</a></p>
+		<p><a href="./bank.php">Account view</a></p>
 	</body>
 </html>
 HTML_BLOCK;
@@ -208,14 +211,31 @@ SQL_BLOCK;
 	}
 
 	$query = <<<SQL_BLOCK
-SELECT *
+SELECT
+	bank_transactions.account,
+	accounts.name,
+	MIN(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS f_date,
+	MAX(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS t_date,
+	COUNT(DISTINCT IF(bank_tid IS NULL, bank_transactions.bank_t_row, NULL)) AS erows,
+	accounts.guid AS account_guid
 FROM bank_transactions
-WHERE bank_tid IS NULL
-	AND bdate >= '2016-09-01'
-	AND account = {$selected_account}
-	{$filter}
-ORDER BY bdate DESC
-LIMIT {$limit}
+	INNER JOIN accounts ON (accounts.code = bank_transactions.account)
+WHERE bdate >= '2016-09-01'
+	AND accounts.code = {$selected_account}
+SQL_BLOCK;
+
+	$account_row = $db->get($query);
+	/** @var table_db_result_account_name_rows $account_row_sql */
+	$account_row_sql = (object) array_map([$db, 'quote'], $account_row);
+
+	$missing_query = <<<SQL_BLOCK
+SELECT *
+FROM splits 
+	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
+	LEFT JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
+WHERE bank_transactions.bank_tid IS NULL
+	AND splits.account_guid = {$account_row_sql->account_guid}
+	AND transactions.post_date BETWEEN {$account_row_sql->f_date} AND {$account_row_sql->t_date}
 SQL_BLOCK;
 
 	echo <<<HTML_BLOCK
@@ -263,9 +283,14 @@ HTML_BLOCK;
 
 	$odd = FALSE;
 
-	/** @var table_bank_transactions $bt_row */
-	foreach($db->objects($query) as $bt_row)
+	/** @var table_db_result_missing_splits $bt_row */
+	foreach($db->objects($missing_query) as $bt_row)
 	{
+		echo "<pre>";
+		print_r($bt_row);
+		echo "</pre>";
+
+		continue;
 		if($bt_row->amount > 0)
 		{
 			$from_option = $options;
@@ -484,33 +509,6 @@ HTML_BLOCK;
 
 HTML_BLOCK;
 
-/*
-CREATE TABLE `bank_transactions` (
- `bdate` date NOT NULL,
- `vdate` date NOT NULL,
- `vnr` int(11) NOT NULL,
- `vtext` varchar(255) NOT NULL,
- `amount` decimal(10,0) NOT NULL,
- `saldo` decimal(10,0) NOT NULL,
- `account` char(4) DEFAULT NULL,
- `bank_tid` varchar(255) DEFAULT NULL,
- `bank_t_row` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
- PRIMARY KEY (`bank_t_row`),
- UNIQUE KEY `bank_row` (`account`,`bdate`,`vdate`,`vnr`,`vtext`,`amount`,`saldo`) USING BTREE,
- KEY `bank_data` (`bdate`,`vdate`,`vnr`,`vtext`,`amount`,`saldo`) USING BTREE,
- KEY `bank_tid` (`bank_tid`)
-) ENGINE=InnoDB AUTO_INCREMENT=2179 DEFAULT CHARSET=utf8
-
--- File: /tmp/1221_20170218.csv
--- Import columns: bdate,vdate,vnr,vtext,amount,saldo
-UPDATE IGNORE bank_transactions SET account = 1221 WHERE account IS NULL;
-DELETE FROM bank_transactions WHERE account IS NULL;
-
--- Broken
-SELECT bank_transactions.* FROM bank_transactions LEFT JOIN splits ON (splits.guid = bank_transactions.bank_tid) WHERE splits.guid IS NULL AND  bank_transactions.bank_tid IS NOT NULL;
-UPDATE bank_transactions LEFT JOIN splits ON (splits.guid = bank_transactions.bank_tid) SET bank_transactions.bank_tid = NULL WHERE splits.guid IS NULL AND bank_transactions.bank_tid IS NOT NULL;
-*/
-
 class table_bank_transactions
 {
 	public $bdate;
@@ -524,34 +522,69 @@ class table_bank_transactions
 	public $bank_t_row;
 }
 
+/*
+	SELECT
+		bank_transactions.account,
+		accounts.name,
+		MIN(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS f_date,
+		MAX(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS t_date,
+		COUNT(DISTINCT IF(bank_tid IS NULL, bank_transactions.bank_t_row, NULL)) AS erows,
+		accounts.guid AS account_guid
+	FROM bank_transactions
+		INNER JOIN accounts ON (accounts.code = bank_transactions.account)
+	WHERE bdate >= '2016-09-01'
+		AND accounts.code = {$selected_account}
+	SQL_BLOCK;
+*/
+
 class table_db_result_account_name_rows
 {
 	public $account;
 	public $name;
 	public $rows;
+	public $f_date;
+	public $t_date;
 	public $erows;
-	public $prows;
-	public $edate;
-	public $fdate;
+	public $account_guid;
 }
 
-class table_db_result_row_value_date_description_guid
+/*
+SELECT *
+FROM splits
+	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
+	LEFT JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
+WHERE bank_transactions.bank_tid IS NULL
+	AND splits.account_guid = {$account_row_sql->account_guid}
+	AND transactions.post_date BETWEEN {$account_row_sql->f_date} AND {$account_row_sql->t_date}
+SQL_BLOCK;
+*/
+class table_db_result_missing_splits
 {
-	public $row;
-	public $value;
-	public $date;
-	public $description;
 	public $guid;
-	public $other_account;
-}
-
-class table_db_result_row_text_match
-{
-	public $code;
-	public $name;
-	public $connections;
-	public $amount_from;
-	public $amount_to;
-	public $date_from;
-	public $date_to;
+	public $tx_guid;
+	public $account_guid;
+	public $memo;
+	public $action;
+	public $reconcile_state;
+	public $reconcile_date;
+	public $value_num;
+	public $value_denom;
+	public $quantity_num;
+	public $quantity_denom;
+	public $lot_guid;
+	// public $guid;
+	public $currency_guid;
+	public $num;
+	public $post_date;
+	public $enter_date;
+	public $description;
+	public $bdate;
+	public $vdate;
+	public $vnr;
+	public $vtext;
+	public $amount;
+	public $saldo;
+	public $account;
+	public $bank_tid;
+	public $bank_t_row;
 }
