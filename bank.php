@@ -71,7 +71,7 @@ HTML_BLOCK;
 			$row_class = ($odd = !$odd) ? 'odd' : 'even';
 			echo <<<HTML_BLOCK
 				<tr class="{$row_class}">
-					<td><a href="?account={$row_html->account}">{$row_html->name}</a></td>
+					<td><a href="?skip=0&amp;limit=3&amp;account={$row_html->account}">{$row_html->name}</a></td>
 					<td>{$row_html->edate}</td>
 					<td>{$row_html->fdate}</td>
 					<td>{$row_html->erows}</td>
@@ -182,10 +182,22 @@ SQL_BLOCK;
 	}
 	$options = implode(PHP_EOL, $options);
 
+	$skip_count = 0;
+	$order_by = "bdate DESC";
+
 	if(isset($_GET['skip']))
 	{
-		$limit = "20 OFFSET " . (int) $_GET['skip'];
-		$skip_url_html = "&amp;skip=" . (int) $_GET['skip'];
+		$skip_count = (int) $_GET['skip'];
+		if(empty($_GET['limit']))
+		{
+			$limit_count = 20;
+		}
+		else
+		{
+			$limit_count = (int) $_GET['limit'];
+		}
+		$limit = "{$limit_count} OFFSET {$skip_count}";
+		$skip_url_html = "&amp;limit={$limit_count}&amp;skip={$skip_count}";
 		$filter = '';
 	}
 	else if(isset($_GET['q']))
@@ -208,6 +220,16 @@ SQL_BLOCK;
 		$filter = '';
 	}
 
+	if(isset($_GET['old'])) {
+		$order_by = "bdate";
+		$skip_url_html .= '&amp;old';
+	}
+
+	if(!isset($limit_count))
+	{
+		$limit_count = $limit;
+	}
+
 	$query = <<<SQL_BLOCK
 SELECT *
 FROM bank_transactions
@@ -215,7 +237,7 @@ WHERE bank_tid IS NULL
 	AND bdate >= '2016-09-01'
 	AND account = {$selected_account}
 	{$filter}
-ORDER BY bdate DESC
+ORDER BY {$order_by}
 LIMIT {$limit}
 SQL_BLOCK;
 
@@ -263,10 +285,14 @@ HTML_BLOCK;
 	$current_account_option = "<option value=\"{$selected_account}\">{$account_names_html[$selected_account]}</option>";
 
 	$odd = FALSE;
+	$row_count = 0;
 
 	/** @var table_bank_transactions $bt_row */
 	foreach($db->objects($query) as $bt_row)
 	{
+		$base_url = "?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}";
+		$row_count++;
+
 		if($bt_row->amount > 0)
 		{
 			$from_option = $options;
@@ -294,7 +320,7 @@ HTML_BLOCK;
 		}
 
 		echo <<<HTML_BLOCK
-		<form method="post" action="?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}">
+		<form method="post" action="{$base_url}">
 			<fieldset class="{$class}">
 				<legend>{$bt_row->amount} kr @ {$bt_row->bdate}</legend>
 
@@ -372,7 +398,7 @@ SQL_BLOCK;
 HTML_BLOCK;
 		}
 		$description = htmlentities($match_row->description);
-		$url = "?account={$selected_account}&amp;row={$bt_row->bank_t_row}&amp;guid={$match_row->guid}";
+		$url = "{$base_url}&amp;guid={$match_row->guid}";
 		$date = substr($match_row->date, 0, 10);
 		$other_account = $match_row->other_account ? ' (' . htmlentities($match_row->other_account) . ')' : '';
 		echo <<<HTML_BLOCK
@@ -460,6 +486,35 @@ HTML_BLOCK;
 		</form>
 
 HTML_BLOCK;
+	}
+
+	if($limit_count) {
+		$relative_url = "?account={$selected_account}&amp;limit={$limit_count}";
+		if(isset($_GET['old'])) {
+			$order_by = "bdate";
+			$relative_url .= '&amp;old';
+		}
+
+		$links = [];
+		if($skip_count) {
+			$links[] = "<a href=\"{$relative_url}&amp;skip=0\">&lt;&lt;-</a>";
+
+			if($skip_count > $limit_count)
+			{
+				$skip_back = $skip_count - $limit_count;
+				$links[] = "<a href=\"{$relative_url}&amp;skip={$skip_back}\">&lt;-</a>";
+			}
+		}
+		$page = 1 + floor($skip_count / $limit_count);
+		$first = $skip_count + 1;
+		$last = $skip_count + $row_count;
+		$links[] = "<strong>{$page}</strong>";
+		$links[] = "<span>({$first} - {$last})</span>";
+		if($row_count > 0 AND $row_count == $limit_count) {
+			$skip_next = $skip_count + $limit_count;
+			$links[] = "<a href=\"{$relative_url}&amp;skip={$skip_next}\">-&gt;</a>";
+		}
+		echo "<p>" . implode("<span> &nbsp; &nbsp; </span>", $links) . "</p>";
 	}
 
 	echo <<<HTML_BLOCK
