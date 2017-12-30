@@ -208,7 +208,7 @@
 		}
 		$account_options = implode(PHP_EOL, $account_options);
 
-		$min_date = $_POST['min_date'] ?? date("Y-m-d", strtotime("-2 months"));
+		$min_date = $_POST['min_date'] ?? date("Y-m-d", strtotime("-6 months"));
 
 		echo <<<HTML_BLOCK
 <html>
