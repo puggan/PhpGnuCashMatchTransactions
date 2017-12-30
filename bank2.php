@@ -61,6 +61,7 @@
 				bi.init()
 		   });
 		</script>
+		<p><a href="?">&laquo; Account view</a></p>
 	</body>
 </html>
 HTML_BLOCK;

@@ -71,7 +71,7 @@ HTML_BLOCK;
 			$row_class = ($odd = !$odd) ? 'odd' : 'even';
 			echo <<<HTML_BLOCK
 				<tr class="{$row_class}">
-					<td><a href="?skip=0&amp;limit=3&amp;account={$row_html->account}">{$row_html->name}</a></td>
+					<td><a href="bank2.php?account={$row_html->account}">{$row_html->name}</a></td>
 					<td>{$row_html->edate}</td>
 					<td>{$row_html->fdate}</td>
 					<td>{$row_html->erows}</td>
