@@ -115,8 +115,7 @@
 		{
 			$resource = $this->query($query);
 
-			//if(!is_a($resource, "mysqli_result")) return FALSE;
-			if(!is_a($resource, "mysqli_result")) return;
+			if(!is_a($resource, "mysqli_result")) throw new \Exception("Query Failed");
 
 			while(NULL !== ($row = $resource->fetch_array(MYSQLI_ASSOC)))
 			{
@@ -169,7 +168,7 @@
 		{
 			$resource = $this->query($query);
 
-			if(!is_a($resource, "mysqli_result")) return FALSE;
+			if(!is_a($resource, "mysqli_result")) throw new \Exception("Query Failed");
 
 			while(NULL !== ($row = $resource->fetch_object($class_name ?: 'stdClass')))
 			{
