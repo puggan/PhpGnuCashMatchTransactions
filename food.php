@@ -147,11 +147,3 @@ echo <<<HTML_BLOCK
 </html>
 
 HTML_BLOCK;
-
-class table_db_result_row_odd_match
-{
-    public $row_count;
-    public $account_count;
-    public $accounts;
-    public $matchtext;
-}

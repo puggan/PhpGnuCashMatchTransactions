@@ -58,7 +58,7 @@ SQL_BLOCK;
 
 $count = 0;
 
-/** @var table_db_result_row_odd_match $match_row */
+/** @var \PhpDoc\table_db_result_row_odd_match $match_row */
 foreach ($db->objects($query) as $match_row) {
     if (!$count++) {
         echo <<<HTML_BLOCK
@@ -138,11 +138,3 @@ echo <<<HTML_BLOCK
 </html>
 
 HTML_BLOCK;
-
-class table_db_result_row_odd_match
-{
-    public $row_count;
-    public $account_count;
-    public $accounts;
-    public $matchtext;
-}

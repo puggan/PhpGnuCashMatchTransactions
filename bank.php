@@ -1,10 +1,13 @@
 <?php
 
+use Models\Transaction;
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/GnuCash.php';
+require_once __DIR__ . '/Models/Transaction.php';
 
 $db = Auth::new_db();
 
@@ -66,7 +69,7 @@ SQL_BLOCK;
 HTML_BLOCK;
 
     $odd = false;
-    /** @var table_db_result_account_name_rows $row */
+    /** @var \PhpDoc\table_db_result_account_name_rows_balance $row */
     foreach ($db->g_objects($query) as $row) {
         $row->prowc = (int) (100 * $row->erowc / $row->rowc);
         $row->pos = (($row->missingPos > 0) ? number_format($row->missingPos, 2, '.', ' ') : '');
@@ -77,7 +80,7 @@ HTML_BLOCK;
             '.',
             ' '
         );
-        /** @var table_db_result_account_name_rows $row_html */
+        /** @var \PhpDoc\table_db_result_account_name_rows_balance $row_html */
         $row_html = (object) array_map('htmlentities', (array) $row);
 
         $row_class = ($odd = !$odd) ? 'odd' : 'even';
@@ -284,7 +287,7 @@ $current_account_option = "<option value=\"{$selected_account}\">{$account_names
 $odd = false;
 $row_count = 0;
 
-/** @var table_bank_transactions $bt_row */
+/** @var Transaction $bt_row */
 foreach ($db->objects($query) as $bt_row) {
     $base_url = "?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}";
     $row_count++;
@@ -519,75 +522,3 @@ echo <<<HTML_BLOCK
 </html>
 
 HTML_BLOCK;
-
-/*
-CREATE TABLE `bank_transactions` (
- `bdate` date NOT NULL,
- `vdate` date NOT NULL,
- `vnr` int(11) NOT NULL,
- `vtext` varchar(255) NOT NULL,
- `amount` decimal(10,0) NOT NULL,
- `saldo` decimal(10,0) NOT NULL,
- `account` char(4) DEFAULT NULL,
- `bank_tid` varchar(255) DEFAULT NULL,
- `bank_t_row` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
- PRIMARY KEY (`bank_t_row`),
- UNIQUE KEY `bank_row` (`account`,`bdate`,`vdate`,`vnr`,`vtext`,`amount`,`saldo`) USING BTREE,
- KEY `bank_data` (`bdate`,`vdate`,`vnr`,`vtext`,`amount`,`saldo`) USING BTREE,
- KEY `bank_tid` (`bank_tid`)
-) ENGINE=InnoDB AUTO_INCREMENT=2179 DEFAULT CHARSET=utf8
-
--- File: /tmp/1221_20170218.csv
--- Import columns: bdate,vdate,vnr,vtext,amount,saldo
-UPDATE IGNORE bank_transactions SET account = 1221 WHERE account IS NULL;
-DELETE FROM bank_transactions WHERE account IS NULL;
-
--- Broken
-SELECT bank_transactions.* FROM bank_transactions LEFT JOIN splits ON (splits.guid = bank_transactions.bank_tid) WHERE splits.guid IS NULL AND  bank_transactions.bank_tid IS NOT NULL;
-UPDATE bank_transactions LEFT JOIN splits ON (splits.guid = bank_transactions.bank_tid) SET bank_transactions.bank_tid = NULL WHERE splits.guid IS NULL AND bank_transactions.bank_tid IS NOT NULL;
-*/
-
-class table_bank_transactions
-{
-    public $bdate;
-    public $vdate;
-    public $vnr;
-    public $vtext;
-    public $amount;
-    public $saldo;
-    public $account;
-    public $bank_tid;
-    public $bank_t_row;
-}
-
-class table_db_result_account_name_rows
-{
-    public $account;
-    public $name;
-    public $rowc;
-    public $erowc;
-    public $prowc;
-    public $edate;
-    public $fdate;
-}
-
-class table_db_result_row_value_date_description_guid
-{
-    public $row;
-    public $value;
-    public $date;
-    public $description;
-    public $guid;
-    public $other_account;
-}
-
-class table_db_result_row_text_match
-{
-    public $code;
-    public $name;
-    public $connections;
-    public $amount_from;
-    public $amount_to;
-    public $date_from;
-    public $date_to;
-}

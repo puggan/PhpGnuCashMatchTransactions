@@ -57,9 +57,9 @@ SQL_BLOCK;
 HTML_BLOCK;
 
     $odd = false;
-    /** @var table_db_result_account_name_rows $row */
+    /** @var \PhpDoc\table_db_result_account_name_rows_bad_amount $row */
     foreach ($db->g_objects($query) as $row) {
-        /** @var table_db_result_account_name_rows $row_html */
+        /** @var \PhpDoc\table_db_result_account_name_rows_bad_amount $row_html */
         $row_html = (object) array_map('htmlentities', (array) $row);
 
         $account_guid_sql = $db->quote($row->account_guid);
@@ -216,7 +216,7 @@ WHERE bdate >= '2016-09-01'
 SQL_BLOCK;
 
 $account_row = $db->get($query);
-/** @var table_db_result_account_name_rows $account_row_sql */
+/** @var \PhpDoc\table_db_result_account_name_rows_counts $account_row_sql */
 $account_row_sql = (object) array_map([$db, 'quote'], $account_row);
 
 $missing_query = <<<SQL_BLOCK
@@ -274,7 +274,7 @@ $current_account_option = "<option value=\"{$selected_account}\">{$account_names
 
 $odd = false;
 
-/** @var table_db_result_missing_splits $bt_row */
+/** @var \PhpDoc\table_db_result_missing_splits $bt_row */
 foreach ($db->objects($missing_query) as $bt_row) {
     echo "<pre>";
     print_r($bt_row);
@@ -368,7 +368,7 @@ ORDER BY ABS(splits.value_num - bank_transactions.amount * splits.value_denom),
 SQL_BLOCK;
 
     $count = 0;
-    /** @var table_db_result_row_value_date_description_guid $match_row */
+    /** @var \PhpDoc\table_db_result_row_value_date_description_guid $match_row */
     foreach ($db->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK
@@ -423,7 +423,7 @@ SQL_BLOCK;
 
     $count = 0;
 
-    /** @var table_db_result_row_text_match $match_row */
+    /** @var \PhpDoc\table_db_result_row_text_match $match_row */
     foreach ($db->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK
@@ -483,84 +483,3 @@ echo <<<HTML_BLOCK
 </html>
 
 HTML_BLOCK;
-
-class table_bank_transactions
-{
-    public $bdate;
-    public $vdate;
-    public $vnr;
-    public $vtext;
-    public $amount;
-    public $saldo;
-    public $account;
-    public $bank_tid;
-    public $bank_t_row;
-}
-
-/*
-	SELECT
-		bank_transactions.account,
-		accounts.name,
-		MIN(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS f_date,
-		MAX(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS t_date,
-		COUNT(DISTINCT IF(bank_tid IS NULL, bank_transactions.bank_t_row, NULL)) AS erows,
-		accounts.guid AS account_guid
-	FROM bank_transactions
-		INNER JOIN accounts ON (accounts.code = bank_transactions.account)
-	WHERE bdate >= '2016-09-01'
-		AND accounts.code = {$selected_account}
-	SQL_BLOCK;
-*/
-
-class table_db_result_account_name_rows
-{
-    public $account;
-    public $name;
-    public $rows;
-    public $f_date;
-    public $t_date;
-    public $erows;
-    public $account_guid;
-}
-
-/*
-SELECT *
-FROM splits
-	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
-	LEFT JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
-WHERE bank_transactions.bank_tid IS NULL
-	AND splits.account_guid = {$account_row_sql->account_guid}
-	AND transactions.post_date BETWEEN {$account_row_sql->f_date} AND {$account_row_sql->t_date}
-SQL_BLOCK;
-*/
-
-class table_db_result_missing_splits
-{
-    public $guid;
-    public $tx_guid;
-    public $account_guid;
-    public $memo;
-    public $action;
-    public $reconcile_state;
-    public $reconcile_date;
-    public $value_num;
-    public $value_denom;
-    public $quantity_num;
-    public $quantity_denom;
-    public $lot_guid;
-    // public $guid;
-    public $currency_guid;
-    public $num;
-    public $post_date;
-    public $enter_date;
-    public $description;
-    public $bdate;
-    public $vdate;
-    public $vnr;
-    public $vtext;
-    public $amount;
-    public $saldo;
-    public $account;
-    public $bank_tid;
-    public $bank_t_row;
-}

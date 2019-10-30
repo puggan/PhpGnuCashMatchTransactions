@@ -11,7 +11,7 @@ if (empty($_GET['account'])) {
 $code = (int) $_GET['account'];
 $db = Auth::new_db();
 
-/** @var accounts[] $accounts */
+/** @var \PhpDoc\accounts[] $accounts */
 $accounts = $db->objects('SELECT * FROM accounts', 'code');
 
 if (empty($accounts[$code])) {
@@ -53,7 +53,7 @@ SQL_BLOCK;
 $sum = 0;
 $trs = [];
 
-/** @var tr_sum $o */
+/** @var \PhpDoc\tr_sum $o */
 foreach ($db->g_objects($query, 'code') as $o) {
     $sum += $o->mv;
     $ovl = explode(',', $o->ov);
@@ -108,7 +108,7 @@ WHERE prediction_splits.code = {$code}
 	AND prediction_dates.tx_guid IS NULL
 ORDER BY prediction_date, prediction_id
 SQL_BLOCK;
-/** @var tr_prediction $p */
+/** @var \PhpDoc\tr_prediction $p */
 foreach ($db->g_objects($query) as $p) {
     $sum += $p->value;
     $prediction_trs[] = implode(
@@ -189,46 +189,3 @@ echo <<<HTML_BLOCK
 </html>
 
 HTML_BLOCK;
-
-/**
- * Class accounts
- * @property string guid
- * @property string name
- * @property string account_type
- * @property string commodity_guid
- * @property int commodity_scu
- * @property int non_std_scu
- * @property string praent_guid
- * @property string code
- * @property string description
- * @property int hidden
- * @property int placeholder
- */
-class accounts
-{
-
-}
-
-/**
- * Class saldo_sum
- * @property string guid
- * @property string post_date
- * @property string description
- * @property float mv
- * @property string ov
- * @property int prediction_id
- */
-class tr_sum
-{
-}
-
-/**
- * Class saldo_sum
- * @property int prediction_id
- * @property string name
- * @property string prediction_date
- * @property int value
- */
-class tr_prediction
-{
-}
