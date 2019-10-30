@@ -10,11 +10,17 @@
     }
   ],
   "autoload": {
+    "files": [
+      "secrets.php"
+    ],
     "psr-4": {
       "Puggan\\GnuCashMatcher\\": "src/"
     }
   },
   "require": {
-    "php": "~7.3"
+    "php": "~7.3",
+    "ext-pdo": "*",
+    "ext-json": "*",
+    "ext-mysqli": "*"
   }
 }
