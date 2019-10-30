@@ -82,4 +82,19 @@ SQL_BLOCK;
         }
         $db->write($query);
     }
+
+    public function add(\db $db)
+    {
+        $query = <<<SQL_BLOCK
+INSERT INTO bank_transactions SET
+    bdate = {$db->quote($this->bdate)},
+    vdate = {$db->quote($this->vdate)},
+    vnr = {$db->quote($this->vnr)},
+    vtext = {$db->quote($this->vtext)},
+    amount = {$db->quote($this->amount)},
+    saldo = {$db->quote($this->saldo)},
+    account = {$db->quote($this->account)}
+SQL_BLOCK;
+        return $db->insert($query);
+    }
 }

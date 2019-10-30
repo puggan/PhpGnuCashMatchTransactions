@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use Models\BankTransaction;
+
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
 
@@ -9,10 +11,10 @@ define('REGEXP_DATE', '#^(20[0-9][0-9])-([0-1][0-9])-([0-3][0-9])$#');
 define('REGEXP_MONEY', "#^(-)?(0|[1-9][0-9]*)([ ,][0-9][0-9][0-9])*[,\\.]([0-9][0-9])$#");
 define('REGEXP_MONEY_SEK', "#^(-)?(0|[1-9][0-9]*)([ ][0-9][0-9][0-9])*([,\\.]([0-9][0-9]?))?$#");
 
-$db = Auth::new_db();
+$database = Auth::new_db();
 
 if (!empty($_POST['data']) && !empty($_POST['account'])) {
-    $ok = 0;
+    $okCount = 0;
     $min_date = $_POST['min_date'] ?? '2016-09-01';
 
     if ($_POST['import_type'] === 'seb') {
@@ -23,7 +25,6 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
             $cells = explode("\t", $row);
             switch (count($cells)) {
                 case 6:
-                {
                     if (trim($cells[0]) < $min_date) {
                         continue 2;
                     }
@@ -61,39 +62,25 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                         echo $row_nr . ": Bad amount in last column '{$cells[5]}' @ '{$row}' <br />\n";
                         continue 2;
                     }
+                    $banktransaction = new BankTransaction();
+                    $banktransaction->bdate = $cells[0];
+                    $banktransaction->vdate = $cells[1];
+                    $banktransaction->vnr = $cells[2];
+                    $banktransaction->vtext = $cells[3];
+                    $banktransaction->amount = $cells[4] / 100;
+                    $banktransaction->saldo = $cells[5] / 100;
+                    $banktransaction->account = $_POST['account'];
 
-                    $fields = [];
-                    // bdate
-                    $fields[] = $db->quote($cells[0]);
-                    // vdate
-                    $fields[] = $db->quote($cells[1]);
-                    // vnr
-                    $fields[] = $db->quote($cells[2]);
-                    // vtext
-                    $fields[] = $db->quote($cells[3]);
-                    // amount
-                    $fields[] = $db->quote($cells[4]) . ' / 100';
-                    // saldo
-                    $fields[] = $db->quote($cells[5]) . ' / 100';
-                    // account
-                    $fields[] = $db->quote($_POST['account']);
-
-                    $query = 'INSERT INTO bank_transactions(bdate, vdate, vnr, vtext, amount, saldo, account) SELECT ' . implode(
-                            ', ',
-                            $fields
-                        );
-                    // echo $query, '; ', PHP_EOL;
-                    $db->write($query);
-                    $ok++;
+                    if($banktransaction->add($database)) {
+                        $okCount++;
+                    }
                     break;
-                }
 
                 default:
-                {
                     echo $row_nr . ': Bad number of columns, found ' . count(
                             $cells
                         ) . ", expected 6 @ '{$row}' <br />\n";
-                }
+                    break;
             }
         }
     } elseif ($_POST['import_type'] === 'swedbank') {
@@ -107,7 +94,6 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
             }
             switch (count($cells)) {
                 case 9:
-                {
                     $bdate = '20' . $cells[4];
                     if (trim($bdate) < $min_date) {
                         continue 2;
@@ -127,33 +113,22 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                         continue 2;
                     }
 
-                    $fields = [];
-                    // bdate
-                    $fields[] = $db->quote($bdate);
-                    // vdate
-                    $fields[] = $db->quote($vdate);
-                    // vnr
-                    $fields[] = $db->quote($cells[0] . $cells[1]);
-                    // vtext
-                    $fields[] = $db->quote($cells[6]);
-                    // amount
-                    $fields[] = $db->quote(str_replace(['.', ',', ' '], '', $cells[8])) . ' / 100';
-                    // saldo
-                    $fields[] = '0';
-                    // account
-                    $fields[] = $db->quote($_POST['account']);
+                    $banktransaction = new BankTransaction();
+                    $banktransaction->bdate = $bdate;
+                    $banktransaction->vdate = $vdate;
+                    $banktransaction->vnr = $cells[0] . $cells[1];
+                    $banktransaction->vtext = $cells[6];
+                    $banktransaction->amount = str_replace(['.', ',', ' '], '', $cells[8]) / 100;
+                    $banktransaction->saldo = 0;
+                    $banktransaction->account = $_POST['account'];
 
-                    $query = 'INSERT INTO bank_transactions(bdate, vdate, vnr, vtext, amount, saldo, account) SELECT ' . implode(
-                            ', ',
-                            $fields
-                        );
-                    $db->write($query);
-                    $ok++;
+                    if($banktransaction->add($database)) {
+                        $okCount++;
+                    }
                     break;
-                }
+
                 case 8:
-                {
-                    $bdate = '20' . $cells[4];
+                    $bdate = '20' . $cells[1];
                     if (trim($bdate) < $min_date) {
                         continue 2;
                     }
@@ -162,42 +137,35 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                         continue 2;
                     }
 
-                    $vdate = '20' . $cells[5];
+                    $vdate = '20' . $cells[2];
                     if (!preg_match(REGEXP_DATE, $vdate)) {
                         echo $row_nr . ": Bad date in 5th column @ '{$row}' <br />\n";
                         continue 2;
                     }
+                    if (!preg_match(REGEXP_MONEY, $cells[6])) {
+                        echo $row_nr . ": Bad amount in column 7 @ '{$row}' <br />\n";
+                        continue 2;
+                    }
                     if (!preg_match(REGEXP_MONEY, $cells[7])) {
-                        echo $row_nr . ": Bad amount in 8th last column @ '{$row}' <br />\n";
+                        echo $row_nr . ": Bad saldo in column 8 @ '{$row}' <br />\n";
                         continue 2;
                     }
 
-                    $fields = [];
-                    // bdate
-                    $fields[] = $db->quote($bdate);
-                    // vdate
-                    $fields[] = $db->quote($vdate);
-                    // vnr
-                    $fields[] = $db->quote($cells[0] . $cells[1]);
-                    // vtext
-                    $fields[] = $db->quote($cells[6]);
-                    // amount
-                    $fields[] = $db->quote(str_replace(['.', ',', ' '], '', $cells[7])) . ' / 100';
-                    // saldo
-                    $fields[] = '0';
-                    // account
-                    $fields[] = $db->quote($_POST['account']);
+                    $banktransaction = new BankTransaction();
+                    $banktransaction->bdate = $bdate;
+                    $banktransaction->vdate = $vdate;
+                    $banktransaction->vnr = 0;
+                    $banktransaction->vtext = $cells[4];
+                    $banktransaction->amount = str_replace(['.', ',', ' '], '', $cells[6]) / 100;
+                    $banktransaction->saldo = str_replace(['.', ',', ' '], '', $cells[7]) / 100;
+                    $banktransaction->account = $_POST['account'];
 
-                    $query = 'INSERT INTO bank_transactions(bdate, vdate, vnr, vtext, amount, saldo, account) SELECT ' . implode(
-                            ', ',
-                            $fields
-                        );
-                    $db->write($query);
-                    $ok++;
+                    if($banktransaction->add($database)) {
+                        $okCount++;
+                    }
                     break;
-                }
+
                 case 5:
-                {
                     // 0: vtext, 1: bdate, 2: vdate, 3: amount, 4: saldo.
                     $bdate = $cells[1];
                     if (trim($bdate) < $min_date) {
@@ -222,47 +190,35 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                         continue 2;
                     }
 
-                    $fields = [];
-                    // bdate
-                    $fields[] = $db->quote($bdate);
-                    // vdate
-                    $fields[] = $db->quote($vdate);
-                    // vnr
-                    $fields[] = 0;
-                    // vtext
-                    $fields[] = $db->quote($cells[0]);
-                    // amount
-                    $fields[] = $db->quote(str_replace(['.', ',', ' '], '', $cells[3])) . ' / 100';
-                    // saldo
-                    $fields[] = $db->quote(str_replace(['.', ',', ' '], '', $cells[4])) . ' / 100';
-                    // account
-                    $fields[] = $db->quote($_POST['account']);
+                    $banktransaction = new BankTransaction();
+                    $banktransaction->bdate = $bdate;
+                    $banktransaction->vdate = $vdate;
+                    $banktransaction->vnr = 0;
+                    $banktransaction->vtext = $cells[0];
+                    $banktransaction->amount = str_replace(['.', ',', ' '], '', $cells[3]) / 100;
+                    $banktransaction->saldo = str_replace(['.', ',', ' '], '', $cells[4]) / 100;
+                    $banktransaction->account = $_POST['account'];
 
-                    $query = 'INSERT INTO bank_transactions(bdate, vdate, vnr, vtext, amount, saldo, account) SELECT ' . implode(
-                            ', ',
-                            $fields
-                        );
-                    $db->write($query);
-                    $ok++;
+                    if($banktransaction->add($database)) {
+                        $okCount++;
+                    }
                     break;
-                }
 
                 default:
-                {
                     echo $row_nr . ': Bad number of columns, found ' . count(
                             $cells
                         ) . ", expected 9 @ '{$row}' <br />\n";
-                }
+                    break;
             }
         }
     }
 
-    if ($ok) {
-        echo "{$ok} rows parsed ok <br />\n";
+    if ($okCount) {
+        echo "{$okCount} rows parsed ok <br />\n";
     }
     echo '<p><a href="./bank.php">&laquo; Account view</a></p>';
 } else {
-    $account_names = $db->read(
+    $account_names = $database->read(
         "SELECT code, accounts.name FROM accounts WHERE LENGTH(code) = 4 AND code LIKE '12%' ORDER BY code",
         'code',
         'name'
@@ -270,9 +226,9 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
 
     $account_options = [];
     foreach ($account_names as $account_code => $account_name) {
-        $account_options[$account_code] = "<option value=\"{$account_code}\">" . htmlentities(
-                $account_name
-            ) . '</option>';
+        $account_options[$account_code] = "<option value=\"{$account_code}\">" .
+            htmlentities($account_name, ENT_QUOTES) .
+            '</option>';
     }
     $account_options = implode(PHP_EOL, $account_options);
 

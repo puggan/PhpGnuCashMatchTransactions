@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Models\Interfaces;
 
 /**
+ * @property string bdate
  * @property string vdate
  * @property int vnr
  * @property string vtext
