@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Models;
 
@@ -6,7 +7,7 @@ namespace Models;
  * Class Transactions
  * @package Models
  */
-class Transactions implements Interfaces\Transactions
+class Transaction implements Interfaces\Transactions
 {
     /**
      * @param \db $db

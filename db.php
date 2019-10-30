@@ -160,7 +160,7 @@ class db
      * @param string $column
      *
      * @return Generator|string[][]|int[][]|string[]|int[]
-     * @throws Exception
+     * @throws \RuntimeException
      */
     public function g_read(string $query, string $index = null, string $column = null)
     {
@@ -221,7 +221,7 @@ class db
      * @param string $class_name
      *
      * @return Generator|stdClass[]
-     * @throws Exception
+     * @throws \RuntimeException
      * @noinspection PhpVariableVariableInspection
      */
     public function g_objects(string $query, string $index = null, string $class_name = null)

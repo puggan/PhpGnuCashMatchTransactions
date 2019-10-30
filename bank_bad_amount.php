@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -7,10 +8,10 @@ require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/GnuCash.php';
 require_once __DIR__ . '/token_auth.php';
 
-$db = Auth::new_db();
+$database = Auth::new_db();
 
-$db->write(
-    "UPDATE bank_transactions LEFT JOIN splits ON (splits.guid = bank_transactions.bank_tid) SET bank_transactions.bank_tid = NULL WHERE splits.guid IS NULL AND bank_transactions.bank_tid IS NOT NULL"
+$database->write(
+    'UPDATE bank_transactions LEFT JOIN splits ON (splits.guid = bank_transactions.bank_tid) SET bank_transactions.bank_tid = NULL WHERE splits.guid IS NULL AND bank_transactions.bank_tid IS NOT NULL'
 );
 
 if (empty($_GET['account'])) {
@@ -56,42 +57,42 @@ SQL_BLOCK;
 
 HTML_BLOCK;
 
-    $odd = false;
-    /** @var \PhpDOc\table_db_result_account_name_rows_bad_amount $row */
-    foreach ($db->g_objects($query) as $row) {
-        /** @var \PhpDOc\table_db_result_account_name_rows_bad_amount $row_html */
-        $row_html = (object) array_map('htmlentities', (array) $row);
+    $isOdd = false;
+    /** @var \PhpDoc\table_db_result_account_name_rows_bad_amount $dbRow */
+    foreach ($database->g_objects($query) as $dbRow) {
+        /** @var \PhpDoc\table_db_result_account_name_rows_bad_amount $rowHtml */
+        $rowHtml = (object) array_map('htmlentities', (array) $dbRow);
 
-        $account_guid_sql = $db->quote($row->account_guid);
-        $f_date_sql = $db->quote($row->f_date);
-        $t_date_sql = $db->quote($row->t_date);
-        $bad_amount_query = <<<SQL_BLOCK
+        $accountGuidSql = $database->quote($dbRow->account_guid);
+        $fDateSql = $database->quote($dbRow->f_date);
+        $tDateSql = $database->quote($dbRow->t_date);
+        $badAmountQuery = <<<SQL_BLOCK
 SELECT COUNT(*) AS c
 FROM splits
 	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
 	INNER JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
 WHERE bank_transactions.amount * splits.value_denom <> splits.value_num
-	AND splits.account_guid = {$account_guid_sql}
-	AND transactions.post_date BETWEEN {$f_date_sql} AND {$t_date_sql}
+	AND splits.account_guid = {$accountGuidSql}
+	AND transactions.post_date BETWEEN {$fDateSql} AND {$tDateSql}
 SQL_BLOCK;
 
-        $bad_amount = (int) $db->get($bad_amount_query);
+        $badAmount = (int) $database->get($badAmountQuery);
 
-        $row_class = ($odd = !$odd) ? 'odd' : 'even';
+        $rowClass = ($isOdd = !$isOdd) ? 'odd' : 'even';
         echo <<<HTML_BLOCK
-				<tr class="{$row_class}">
-					<td><a href="?account={$row_html->account}">{$row_html->name}</a></td>
-					<td>{$row_html->f_date}</td>
-					<td>{$row_html->t_date}</td>
-					<td>{$row_html->erows}</td>
-					<td>{$bad_amount}</td>
+				<tr class="{$rowClass}">
+					<td><a href="?account={$rowHtml->account}">{$rowHtml->name}</a></td>
+					<td>{$rowHtml->f_date}</td>
+					<td>{$rowHtml->t_date}</td>
+					<td>{$rowHtml->erows}</td>
+					<td>{$badAmount}</td>
 				</tr>
 
 HTML_BLOCK;
 
-        $links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities(
-                $row->name
-            ) . "</a> ({$bad_amount})";
+        $links[$dbRow->account] = "<a href=\"?account={$dbRow->account}\">" . htmlentities(
+                $dbRow->name
+            ) . "</a> ({$badAmount})";
     }
 
     echo <<<HTML_BLOCK
@@ -106,52 +107,55 @@ HTML_BLOCK;
     die();
 }
 
-$account_ids = $db->read("SELECT code, guid FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code", "code", "guid");
-$account_names = $db->read("SELECT code, name FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code", "code", "name");
-$account_names_html = array_map('htmlentities', $account_names);
-$selected_account = (int) $_GET['account'];
+/** @var string[] $accountIds */
+$accountIds = $database->read('SELECT code, guid FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code', 'code', 'guid');
+/** @var string[] $accountNames */
+$accountNames = $database->read('SELECT code, name FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code', 'code', 'name');
+$accountNamesHtml = array_map('htmlentities', $accountNames);
+$selectedAccount = (int) $_GET['account'];
 
-$edit_row = $_GET['row'] ?? 0;
-if ($edit_row) {
-    $new_guid = $_GET['guid'] ?? '';
-    if (!$new_guid) {
+$editRow = $_GET['row'] ?? 0;
+if ($editRow) {
+    $newGuid = $_GET['guid'] ?? '';
+    if (!$newGuid) {
         $date = $_POST['date'] ?? null;
         $amount = $_POST['amount'] ?? null;
-        $from = $_POST['from'] ?? null;
-        $to = $_POST['to'] ?? null;
+        $fromAccount = $_POST['from'] ?? null;
+        $toAccount = $_POST['to'] ?? null;
         $text = $_POST['text'] ?? null;
         $amount = strtr($amount, [',' => '.', ' ' => '']);
 
         if ($date) {
-            $date = date("Y-m-d", strtotime($date));
+            $date = date('Y-m-d', strtotime($date));
         }
 
-        if ($from) {
-            $from = $account_ids[$from] ?? null;
+        if ($fromAccount) {
+            $fromAccount = $accountIds[$fromAccount] ?? null;
         }
 
-        if ($to) {
-            $to = $account_ids[$to] ?? null;
+        if ($toAccount) {
+            $toAccount = $accountIds[$toAccount] ?? null;
         }
 
-        if ($date and $amount and $from and $to and $text) {
-            $GnuCash = Auth::new_gnucash();
+        if ($date && $amount && $fromAccount && $toAccount && $text) {
+            $gnuCash = Auth::new_gnucash();
 
-            if ($GnuCash->GUIDExists($from) and $GnuCash->GUIDExists($to)) {
-                $error = $GnuCash->createTransaction($to, $from, $amount, $text, $date, '');
+            if ($gnuCash->GUIDExists($fromAccount) && $gnuCash->GUIDExists($toAccount)) {
+                $error = $gnuCash->createTransaction($toAccount, $fromAccount, $amount, $text, $date, '');
 
-                if ($GnuCash->lastTxGUID) {
-                    $tx_guid_sql = $db->quote($GnuCash->lastTxGUID);
-                    $account_guid_sql = $db->quote($account_ids[$selected_account]);
+                if ($gnuCash->lastTxGUID) {
+                    $txGuidSql = $database->quote($gnuCash->lastTxGUID);
+                    $accountGuidSql = $database->quote($accountIds[$selectedAccount]);
                     $query = <<<SQL_BLOCK
 SELECT guid
 FROM splits
-WHERE tx_guid = {$tx_guid_sql}
-	AND account_guid = {$account_guid_sql}
+WHERE tx_guid = {$txGuidSql}
+	AND account_guid = {$accountGuidSql}
 SQL_BLOCK;
-                    $matching_splits = $db->read($query, null, 'guid');
-                    if (count($matching_splits)) {
-                        $new_guid = $matching_splits[0];
+                    /** @var string[] $matchingSplits */
+                    $matchingSplits = $database->read($query, null, 'guid');
+                    if (count($matchingSplits)) {
+                        $newGuid = $matchingSplits[0];
                     }
                 } else {
                     echo $error;
@@ -159,46 +163,42 @@ SQL_BLOCK;
             }
         }
     }
-    if ($new_guid) {
-        $new_guid_sql = $db->quote($new_guid);
+    if ($newGuid) {
+        $newGuidSql = $database->quote($newGuid);
         $query = <<<SQL_BLOCK
 UPDATE bank_transactions
-SET bank_tid = {$new_guid_sql}
+SET bank_tid = {$newGuidSql}
 WHERE bank_tid IS NULL
-	AND bank_t_row = {$edit_row}
+	AND bank_t_row = {$editRow}
 SQL_BLOCK;
-        $db->write($query);
+        $database->write($query);
     }
 }
 
-$options = ["<option value=\"\">-- Select Account --</option>"];
-foreach ($account_names as $account_code => $account_name) {
-    $account_name_html = htmlentities($account_name);
-    $options[] = "<option value=\"{$account_code}\">{$account_name_html}</option>";
+$options = ['<option value="">-- Select Account --</option>'];
+foreach ($accountNames as $accountCode => $accountName) {
+    $accountNameHtml = htmlentities($accountName);
+    $options[] = "<option value=\"{$accountCode}\">{$accountNameHtml}</option>";
 }
 $options = implode(PHP_EOL, $options);
 
 if (isset($_GET['skip'])) {
-    $limit = "20 OFFSET " . (int) $_GET['skip'];
-    $skip_url_html = "&amp;skip=" . (int) $_GET['skip'];
+    $limit = '20 OFFSET ' . (int) $_GET['skip'];
+    $skipUrlHtml = '&amp;skip=' . (int) $_GET['skip'];
     $filter = '';
+} elseif (isset($_GET['q'])) {
+    $filter = 'AND bank_transactions.vtext LIKE ' . $database->quote('%' . $_GET['q'] . '%');
+    $limit = 50000;
+    $skipUrlHtml = '&amp;q=' . htmlentities(urlencode($_GET['q']));
+} elseif (isset($_GET['a'])) {
+    $amount = (int) $_GET['a'];
+    $filter = 'AND ((bank_transactions.amount BETWEEN ' . ($amount - 5) . ' AND ' . ($amount + 5) . ') OR (bank_transactions.amount BETWEEN ' . (0 - $amount - 5) . ' AND ' . (5 - $amount) . '))';
+    $limit = 50000;
+    $skipUrlHtml = '&amp;a=' . $amount;
 } else {
-    if (isset($_GET['q'])) {
-        $filter = 'AND bank_transactions.vtext LIKE ' . $db->quote('%' . $_GET['q'] . '%');
-        $limit = 50000;
-        $skip_url_html = '&amp;q=' . htmlentities(urlencode($_GET['q']));
-    } else {
-        if (isset($_GET['a'])) {
-            $amount = (int) $_GET['a'];
-            $filter = 'AND ((bank_transactions.amount BETWEEN ' . ($amount - 5) . ' AND ' . ($amount + 5) . ') OR (bank_transactions.amount BETWEEN ' . (0 - $amount - 5) . ' AND ' . (5 - $amount) . '))';
-            $limit = 50000;
-            $skip_url_html = '&amp;a=' . $amount;
-        } else {
-            $limit = 500;
-            $skip_url_html = '';
-            $filter = '';
-        }
-    }
+    $limit = 500;
+    $skipUrlHtml = '';
+    $filter = '';
 }
 
 $query = <<<SQL_BLOCK
@@ -212,14 +212,14 @@ SELECT
 FROM bank_transactions
 	INNER JOIN accounts ON (accounts.code = bank_transactions.account)
 WHERE bdate >= '2016-09-01'
-	AND accounts.code = {$selected_account}
+	AND accounts.code = {$selectedAccount}
 SQL_BLOCK;
 
-$account_row = $db->get($query);
+$account_row = $database->get($query);
 /** @var \PhpDoc\table_db_result_account_name_rows_bad_amount $account_row_sql */
-$account_row_sql = (object) array_map([$db, 'quote'], $account_row);
+$account_row_sql = (object) array_map([$database, 'quote'], $account_row);
 
-$bad_amount_query = <<<SQL_BLOCK
+$badAmountQuery = <<<SQL_BLOCK
 SELECT
 	'bt',
 	bank_transactions.*,
@@ -243,7 +243,7 @@ SQL_BLOCK;
 echo <<<HTML_BLOCK
 <html>
 	<head>
-		<title>Unmatched transactions of account: {$selected_account}</title>
+		<title>Unmatched transactions of account: {$selectedAccount}</title>
 		<link rel="stylesheet" href="lib/chosen/chosen.css" />
 		<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" />
 		<style type="text/css">
@@ -277,21 +277,22 @@ echo <<<HTML_BLOCK
 		</script>
 	</head>
 	<body>
-		<h1>Unmatched transactions of account: {$account_names_html[$selected_account]}</h1>
+		<h1>Unmatched transactions of account: {$accountNamesHtml[$selectedAccount]}</h1>
 
 HTML_BLOCK;
 
-$current_account_option = "<option value=\"{$selected_account}\">{$account_names_html[$selected_account]}</option>";
+$current_account_option = "<option value=\"{$selectedAccount}\">{$accountNamesHtml[$selectedAccount]}</option>";
 
-$odd = false;
+$isOdd = false;
 
 /** @var \PhpDoc\table_db_result_missing_splits $bt_row */
-foreach ($db->objects($bad_amount_query) as $bt_row) {
-    echo "<pre>";
+foreach ($database->objects($badAmountQuery) as $bt_row) {
+    echo '<pre>';
     print_r($bt_row);
-    echo "</pre>";
+    echo '</pre>';
 
     continue;
+    /** @noinspection PhpUnreachableStatementInspection TODO replace debug code with real code */
     if ($bt_row->amount > 0) {
         $from_option = $options;
         $to_option = $current_account_option;
@@ -303,9 +304,9 @@ foreach ($db->objects($bad_amount_query) as $bt_row) {
     }
 
     $text = htmlentities($bt_row->vtext);
-    $class = (($odd = !$odd) ? 'odd' : 'even') . ' ' . ($bt_row->amount > 0 ? 'inc' : 'dec');
+    $class = (($isOdd = !$isOdd) ? 'odd' : 'even') . ' ' . ($bt_row->amount > 0 ? 'inc' : 'dec');
 
-    if (preg_match("#/([0-9][0-9]-[0-9][0-9]-[0-9][0-9])$#", $text, $m)) {
+    if (preg_match('#/(\d\d-\d\d-\d\d)$#', $text, $m)) {
         $text = trim(substr($text, 0, -9));
         $date = 20 . $m[1];
     } else {
@@ -313,7 +314,7 @@ foreach ($db->objects($bad_amount_query) as $bt_row) {
     }
 
     echo <<<HTML_BLOCK
-		<form method="post" action="?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}">
+		<form method="post" action="?account={$selectedAccount}{$skipUrlHtml}&amp;row={$bt_row->bank_t_row}">
 			<fieldset class="{$class}">
 				<legend>{$bt_row->amount} kr @ {$bt_row->bdate}</legend>
 
@@ -361,7 +362,7 @@ SELECT
 	transactions.post_date AS date,
 	transactions.description,
 	splits.guid,
-	COALESCE(account2.name, '') AS other_account
+	IFNULL(account2.name, '') AS other_account
 FROM bank_transactions
 	INNER JOIN accounts ON (accounts.code = bank_transactions.account)
 	INNER JOIN splits ON (splits.account_guid = accounts.guid)
@@ -373,14 +374,21 @@ WHERE bank_transactions.bank_t_row = {$bt_row->bank_t_row}
 	AND used.bank_t_row IS NULL
 	AND transactions.post_date BETWEEN bank_transactions.bdate - INTERVAL 1 WEEK AND bank_transactions.bdate + INTERVAL 1 WEEK
 	AND splits.value_num - bank_transactions.amount * splits.value_denom BETWEEN -100 AND 100
-GROUP BY splits.guid
+GROUP BY
+    splits.guid,
+    splits.value_denom,
+    splits.value_num,
+    bank_transactions.amount,
+    bank_transactions.bdate,
+    transactions.post_date
 ORDER BY ABS(splits.value_num - bank_transactions.amount * splits.value_denom),
 	ABS(UNIX_TIMESTAMP(transactions.post_date) - UNIX_TIMESTAMP(bank_transactions.bdate))
 SQL_BLOCK;
 
     $count = 0;
-    /** @var \PhpDoc\table_db_result_row_value_date_description_guid $match_row */
-    foreach ($db->objects($query) as $match_row) {
+    /** @var \db $database why is this row needed? */
+    /** @var \Models\Combined\BankTransactionMatchingSplits $match_row */
+    foreach ($database->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK
 						<h3>Match sugestions (TR)</h3>
@@ -389,7 +397,7 @@ SQL_BLOCK;
 HTML_BLOCK;
         }
         $description = htmlentities($match_row->description);
-        $url = "?account={$selected_account}&amp;row={$bt_row->bank_t_row}&amp;guid={$match_row->guid}";
+        $url = "?account={$selectedAccount}&amp;row={$bt_row->bank_t_row}&amp;guid={$match_row->guid}";
         $date = substr($match_row->date, 0, 10);
         $other_account = $match_row->other_account ? ' (' . htmlentities($match_row->other_account) . ')' : '';
         echo <<<HTML_BLOCK

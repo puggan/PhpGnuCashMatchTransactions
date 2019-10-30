@@ -1,27 +1,25 @@
 <?php
+declare(strict_types=1);
+/** @noinspection PhpUnhandledExceptionInspection */
 
 require_once __DIR__ . '/Auth.php';
 
 $auth_error = null;
-if (!cookie_token_auth() && $_POST) {
+if (!empty($_POST) && !cookie_token_auth()) {
     if (empty($_POST['device'])) {
         $auth_error = 'Missing device';
+    } elseif (empty($_POST['user'])) {
+        $auth_error = 'Missing user';
+    } elseif (empty($_POST['password'])) {
+        $auth_error = 'Missing password';
     } else {
-        if (empty($_POST['user'])) {
-            $auth_error = 'Missing user';
+        $auth = new Auth();
+        if (!$auth->verify($_POST['user'], $_POST['password'])) {
+            $auth_error = 'Bad password';
         } else {
-            if (empty($_POST['password'])) {
-                $auth_error = 'Missing password';
-            } else {
-                $auth = new Auth();
-                if (!$auth->verify($_POST['user'], $_POST['password'])) {
-                    $auth_error = 'Bad password';
-                } else {
-                    $token = base64_encode(random_bytes(20));
-                    cookie_add_auth($token, $_POST['device'], $_POST['user'], 1);
-                    setcookie('auth_token', $token, strtotime('+1 year'));
-                }
-            }
+            $token = base64_encode(random_bytes(20));
+            cookie_add_auth($token, $_POST['device'], $_POST['user'], 1);
+            setcookie('auth_token', $token, strtotime('+1 year'), '/', '', true, true);
         }
     }
 }
@@ -64,13 +62,16 @@ if (!cookie_token_auth()) {
 </html>
 HTML_BLOCK;
 
-    header("HTTP/1.1 403 Login");
+    header('HTTP/1.1 403 Login');
     die(PHP_EOL);
 }
 
+/**
+ * @return bool
+ */
 function cookie_token_auth()
 {
-    if (php_sapi_name() === 'cli') {
+    if (PHP_SAPI === 'cli') {
         return true;
     }
 
@@ -83,9 +84,16 @@ function cookie_token_auth()
         return false;
     }
 
-    return (bool) $db->get("SELECT auth_level FROM cookies WHERE token = " . $db->quote($_COOKIE['auth_token']));
+    return (bool) $db->get('SELECT auth_level FROM cookies WHERE token = ' . $db->quote($_COOKIE['auth_token']));
 }
 
+/**
+ * @param $token
+ * @param $device
+ * @param $user
+ * @param $level
+ * @return false|int|string
+ */
 function cookie_add_auth($token, $device, $user, $level)
 {
     $db = Auth::new_db();
@@ -95,5 +103,5 @@ function cookie_add_auth($token, $device, $user, $level)
         'token = ' . $db->quote($token),
         'user = ' . $db->quote($user),
     ];
-    return $db->insert("INSERT INTO cookies SET " . implode(', ', $sl));
+    return $db->insert('INSERT INTO cookies SET ' . implode(', ', $sl));
 }

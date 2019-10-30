@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -58,8 +59,7 @@ SQL_BLOCK;
 
 $count = 0;
 
-/** @var \PhpDoc\table_db_result_row_odd_match $match_row */
-foreach ($db->objects($query) as $match_row) {
+foreach ($db->read($query, null, 'matchtext') as $matchtext) {
     if (!$count++) {
         echo <<<HTML_BLOCK
 						<ul>
@@ -67,7 +67,7 @@ foreach ($db->objects($query) as $match_row) {
 HTML_BLOCK;
     }
 
-    $text = htmlentities($match_row->matchtext);
+    $text = htmlentities($matchtext, ENT_QUOTES);
     echo <<<HTML_BLOCK
 						<li>
 							<span>{$text}</span>
@@ -75,7 +75,7 @@ HTML_BLOCK;
 
 HTML_BLOCK;
 
-    $safe_text = $db->quote($match_row->matchtext);
+    $safe_text = $db->quote($matchtext);
     $query = <<<SQL_BLOCK
 SELECT
 	accounts.code,
@@ -97,7 +97,7 @@ ORDER BY
 	MAX(DATE(transactions.post_date)) DESC
 SQL_BLOCK;
     foreach ($db->objects($query) as $account_row) {
-        $j = '<pre>' . htmlentities(json_encode($account_row, $json_options)) . '</pre>';
+        $j = '<pre>' . htmlentities(json_encode($account_row, JSON_THROW_ON_ERROR | $json_options, 512), ENT_QUOTES) . '</pre>';
         echo <<<HTML_BLOCK
 								<li>{$j}</li>
 HTML_BLOCK;

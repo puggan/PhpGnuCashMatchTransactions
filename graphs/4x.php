@@ -1,12 +1,14 @@
 <?php
+declare(strict_types=1);
 
 require_once __DIR__ . '/../Auth.php';
 
 $db = Auth::new_db();
 
-$query = "SELECT code, name FROM accounts WHERE code BETWEEN 40 AND 99";
-$group_names = $db->read($query, 'code', 'name');
-$from = date("Y-m-d", strtotime($_GET['from'] ?? '' ?: '2017-01-01'));
+$query = 'SELECT code, name FROM accounts WHERE code BETWEEN 40 AND 99';
+/** @var string[] $groupNames */
+$groupNames = $db->read($query, 'code', 'name');
+$from = date('Y-m-d', strtotime($_GET['from'] ?? '' ?: '2017-01-01'));
 
 $query = <<<SQL_BLOCK
 SELECT
@@ -19,23 +21,24 @@ WHERE transactions.post_date >= '{$from}'
 AND accounts.code BETWEEN 4000 AND 4998
 GROUP BY 1
 SQL_BLOCK;
-$group_values = $db->read($query, 'code_group', 'v');
+/** @var string[] $groupValues */
+$groupValues = $db->read($query, 'code_group', 'v');
 
-$sum = array_sum($group_values);
+$sum = array_sum($groupValues);
 
 $trs = [];
 $pie = [];
-foreach ($group_values as $group => $value) {
+foreach ($groupValues as $group => $value) {
     $value_text = number_format($value, 2, '.', ' ') . ' kr';
-    $data = ['short' => $group, 'long' => $group_names[$group] ?? 'Group ' . $group, 'procent' => round(
+    $data = ['short' => $group, 'long' => $groupNames[$group] ?? 'Group ' . $group, 'procent' => round(
             100 * $value / $sum
         ) . ' %', 'value_text' => $value_text];
-    $trs[] = implode("</td><td>", array_map('htmlentities', $data));
+    $trs[] = implode('</td><td>', array_map('htmlentities', $data));
     $data['value'] = $value;
     $pie[] = $data;
 }
-$trs = "<tr><td>" . implode("</td></tr>\n\t\t\t\t<tr><td>", $trs) . "</td></tr>";
-$json_data = json_encode($pie);
+$trs = '<tr><td>' . implode("</td></tr>\n\t\t\t\t<tr><td>", $trs) . '</td></tr>';
+$json_data = json_encode($pie, JSON_THROW_ON_ERROR, 512);
 echo <<<HTML_BLOCK
 <html>
 	<head>

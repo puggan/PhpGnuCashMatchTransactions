@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 $query = <<<SQL_BLOCK
 SELECT
@@ -14,18 +15,20 @@ SQL_BLOCK;
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
 
-$db = Auth::new_db();
-$sum = 0;
-$trs = [];
+$database = Auth::new_db();
+$total = 0;
+$transactions = [];
 
-foreach ($db->g_read($query, 'd', 'v') as $d => $v) {
-    $sum += $v;
-    $trs[] = "			<tr><td>" . htmlentities($d) . "</td><td>" . number_format(
-            $v,
+/** @var int[] $list */
+$list = $database->g_read($query, 'd', 'v');
+foreach ($list as $date => $value) {
+    $total += $value;
+    $transactions[] = '			<tr><td>' . htmlentities($date) . '</td><td>' . number_format(
+            $value,
             2,
             '.',
             ' '
-        ) . "</td><td>" . number_format($sum, 2, '.', ' ') . "</td></li>";
+        ) . '</td><td>' . number_format($total, 2, '.', ' ') . '</td></li>';
 }
 
 echo <<<HTML_BLOCK
@@ -49,7 +52,7 @@ echo <<<HTML_BLOCK
 			<tbody>
 
 HTML_BLOCK;
-echo implode("\n", $trs);
+echo implode("\n", $transactions);
 echo <<<HTML_BLOCK
 			</tbody>
 		</table>

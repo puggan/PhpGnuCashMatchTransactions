@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 require_once __DIR__ . '/Auth.php';
 
@@ -15,7 +16,7 @@ foreach ($weeks as $week) {
     $prefix = substr($week, 0, 4) . 'w' . substr($week, 4) . 't';
     $last = 0;
     $transactions = $db->read(
-        "SELECT guid, num FROM transactions WHERE YEARWEEK(post_date, 1) = " . ((int) $week) . " ORDER BY post_date, enter_date",
+        'SELECT guid, num FROM transactions WHERE YEARWEEK(post_date, 1) = ' . (int) $week . ' ORDER BY post_date, enter_date',
         'guid',
         'num'
     );
@@ -25,13 +26,11 @@ foreach ($weeks as $week) {
             if (isset($used_nums[$num])) {
                 $ok = false;
                 trigger_error("{$num} used in multiple transactions: {$used_nums[$num]}, {$guid}");
+            } elseif (strpos($num, $prefix) !== 0) {
+                $ok = false;
+                trigger_error("{$num} don't match {$prefix}");
             } else {
-                if (substr($num, 0, strlen($prefix)) != $prefix) {
-                    $ok = false;
-                    trigger_error("{$num} don't match {$prefix}");
-                } else {
-                    $used_nums[$num] = $guid;
-                }
+                $used_nums[$num] = $guid;
             }
         }
     }

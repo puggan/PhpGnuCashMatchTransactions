@@ -1,4 +1,7 @@
-<?php /** @noinspection SpellCheckingInspection */
+<?php
+/** @noinspection PhpTooManyParametersInspection */
+declare(strict_types=1);
+/** @noinspection SpellCheckingInspection */
 /** @noinspection UnknownInspectionInspection */
 /** @noinspection DuplicatedCode */
 /** @noinspection TypeUnsafeComparisonInspection */
@@ -49,7 +52,7 @@ class GnuCash
     /**
      * @return string
      */
-    public function getErrorMessage()
+    public function getErrorMessage(): string
     {
         if ($this->eException) {
             return $this->eException->getMessage();
@@ -60,7 +63,7 @@ class GnuCash
     /**
      * @return int
      */
-    public function getErrorCode()
+    public function getErrorCode(): int
     {
         if ($this->eException) {
             return $this->eException->getCode();
@@ -73,6 +76,7 @@ class GnuCash
      * @param array $aParameters
      * @param bool $bReturnFirst
      * @return array|bool|mixed
+     * @throw \PDOException
      */
     public function runQuery($sSql, $aParameters = [], $bReturnFirst = false)
     {
@@ -110,7 +114,7 @@ class GnuCash
                 $aReturn[] = $aRow;
             }
             return $aReturn;
-        } catch (PDOException $e) {
+        } catch (\PDOException $e) {
             $this->eException = $e;
             throw $e;
         }
@@ -119,7 +123,7 @@ class GnuCash
     /**
      * @return string
      */
-    public function getNewGUID()
+    public function getNewGUID(): string
     {
         $sTempGUID = null;
         mt_srand((double) microtime() * 10000);
@@ -139,7 +143,7 @@ class GnuCash
      * @param string $sGUID
      * @return bool
      */
-    public function GUIDExists($sGUID)
+    public function GUIDExists($sGUID): bool
     {
         $this->runQuery('USE `information_schema`;');
         $aTables = $this->runQuery(
@@ -191,7 +195,7 @@ SQL_BLOCK;
     /**
      * @return array
      */
-    public function getSortedAccounts()
+    public function getSortedAccounts(): array
     {
         $unsorted_accounts = array_column($this->getAccounts(), null, 'guid');
         $sorted_accounts = [];
@@ -206,7 +210,7 @@ SQL_BLOCK;
     /**
      * @return array
      */
-    public function getSortedAccountGUIDs()
+    public function getSortedAccountGUIDs(): array
     {
         $query = 'SELECT guid FROM accounts WHERE parent_guid IS NULL';
         $queryData = $this->runQuery($query);
@@ -222,7 +226,7 @@ SQL_BLOCK;
      * @param string|string[] $sParentGUID
      * @return array
      */
-    public function childGUIDs($sParentGUID)
+    public function childGUIDs($sParentGUID): array
     {
         if(is_array($sParentGUID)) {
             /** @var string[] $todo_guids */
@@ -280,7 +284,7 @@ SQL_BLOCK;
      * @param string $sGUID
      * @return array
      */
-    public function getTransactionInfo($sGUID)
+    public function getTransactionInfo($sGUID): array
     {
         $aSplits = $this->runQuery(
             'SELECT * FROM `splits` WHERE `tx_guid` = :guid;',
@@ -339,7 +343,7 @@ SQL_BLOCK;
      * @param string $sMemo
      * @return string
      */
-    public function createTransaction($sDebitGUID, $sCreditGUID, $fAmount, $sName, $sDate, $sMemo)
+    public function createTransaction($sDebitGUID, $sCreditGUID, $fAmount, $sName, $sDate, $sMemo): string
     {
         $this->lastTxGUID = null;
         if ($this->isLocked()) {
@@ -573,7 +577,7 @@ SQL_BLOCK;
      * @param string $sTransactionGUID
      * @return bool
      */
-    public function deleteTransaction($sTransactionGUID)
+    public function deleteTransaction($sTransactionGUID): bool
     {
         if ($this->isLocked()) {
             return false;
@@ -597,7 +601,7 @@ SQL_BLOCK;
      * @param bool $bReconciled
      * @return bool
      */
-    public function setReconciledStatus($sTransactionGUID, $bReconciled)
+    public function setReconciledStatus($sTransactionGUID, $bReconciled): bool
     {
         $sReconciled = $bReconciled ? 'n' : 'c';
         $this->runQuery(
@@ -642,7 +646,7 @@ SQL_BLOCK;
      * @param string $sNewAccountName
      * @return bool
      */
-    public function renameAccount($sAccountGUID, $sNewAccountName)
+    public function renameAccount($sAccountGUID, $sNewAccountName): bool
     {
         $this->runQuery(
             'UPDATE `accounts` SET `name` = :name WHERE `guid` = :guid;',
@@ -660,7 +664,7 @@ SQL_BLOCK;
      * @param string $sAccountGUID
      * @return array
      */
-    public function deleteAccount($sAccountGUID)
+    public function deleteAccount($sAccountGUID): array
     {
         $aChildAccounts = $this->getChildAccounts($sAccountGUID);
         if ($aChildAccounts) {
@@ -688,7 +692,7 @@ SQL_BLOCK;
      * @param string $sParentAccountGUID
      * @return bool
      */
-    public function createAccount($sName, $sAccountType, $sCommodityGUID, $sParentAccountGUID)
+    public function createAccount($sName, $sAccountType, $sCommodityGUID, $sParentAccountGUID): bool
     {
         $aAccountExists = $this->runQuery(
             'SELECT * FROM `accounts` WHERE `parent_guid` = :parent_guid AND `name` = :name AND `account_type` = :account_type;',
@@ -784,7 +788,7 @@ SQL_BLOCK;
      * @param string $sParentAccountGUID
      * @return bool
      */
-    public function changeAccountParent($sAccountGUID, $sParentAccountGUID)
+    public function changeAccountParent($sAccountGUID, $sParentAccountGUID): bool
     {
         $this->runQuery(
             'UPDATE `accounts` SET `parent_guid` = :parent_guid WHERE `guid` = :guid;',
@@ -799,7 +803,7 @@ SQL_BLOCK;
      * @param string $sNewDescription
      * @return bool
      */
-    public function changeTransactionDescription($sTransactionGUID, $sNewDescription)
+    public function changeTransactionDescription($sTransactionGUID, $sNewDescription): bool
     {
         $this->runQuery(
             'UPDATE `transactions` SET `description` = :description WHERE `guid` = :guid;',
@@ -818,7 +822,7 @@ SQL_BLOCK;
      * @param string $sNewAmount
      * @return bool
      */
-    public function changeTransactionAmount($sTransactionGUID, $sNewAmount)
+    public function changeTransactionAmount($sTransactionGUID, $sNewAmount): bool
     {
         // TODO: How to calculate the value/quantity based on value/quantity denominators.
         $this->runQuery(
@@ -839,9 +843,10 @@ SQL_BLOCK;
      * @param string $sTransactionGUID
      * @param string $sNewDate
      * @return bool
-     * @throws \Exception
+     * @throws \PDOException
+     * @throws Exception
      */
-    public function changeTransactionDate($sTransactionGUID, $sNewDate)
+    public function changeTransactionDate($sTransactionGUID, $sNewDate): bool
     {
         $this->runQuery(
             'UPDATE `transactions` SET `post_date` = :post_date, `enter_date` = :enter_date WHERE `guid` = :guid;',
@@ -862,7 +867,7 @@ SQL_BLOCK;
      * @return array
      * @noinspection PhpUnused
      */
-    public function getDatabases()
+    public function getDatabases(): array
     {
         $aDatabases = $this->runQuery('SHOW DATABASES;');
         $aReturn = [];

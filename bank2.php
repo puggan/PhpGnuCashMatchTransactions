@@ -1,31 +1,41 @@
 <?php
+declare(strict_types=1);
+/** @noinspection PhpUnhandledExceptionInspection */
 
 if (empty($_GET['account'])) {
     header('Location: bank.php');
     die();
 }
 
-$account_code = (int) $_GET['account'];
+$accountCode = (int) $_GET['account'];
 
 require_once __DIR__ . '/token_auth.php';
 require_once __DIR__ . '/bank_funk.php';
-$bi = new Bank_interface();
-$accounts = $bi->accounts();
+$bankI = new Bank_interface();
+$accounts = $bankI->accounts();
 
-if (empty($accounts[$account_code])) {
+if (empty($accounts[$accountCode])) {
     header('Location: bank.php');
     die();
 }
 
 ksort($accounts, SORT_STRING);
-$selected_account_html = htmlentities($accounts[$account_code]);
-$accounts_json = json_encode($accounts, JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE + JSON_FORCE_OBJECT);
-$rows_json = json_encode($bi->account_cache($account_code), JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE);
+$selectedAccountHtml = htmlentities($accounts[$accountCode], ENT_QUOTES);
+$accountsJson = json_encode(
+    $accounts,
+    JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE + JSON_FORCE_OBJECT,
+    512
+);
+$rowsJson = json_encode(
+    $bankI->account_cache($accountCode),
+    JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE,
+    512
+);
 
 echo <<<HTML_BLOCK
 <html>
 	<head>
-		<title>Unmatched transactions of account: {$selected_account_html}</title>
+		<title>Unmatched transactions of account: {$selectedAccountHtml}</title>
 		<link rel="stylesheet" href="lib/chosen/chosen.css" />
 		<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" />
 		<style type="text/css">
@@ -45,14 +55,14 @@ echo <<<HTML_BLOCK
 		<script src="lib/chosen/docsupport/prism.js" type="text/javascript" charset="utf-8"></script>
 		<script type="text/javascript">
 			bi = {};
-			bi.selected_account =; {$account_code};
-			bi.accounts =; {$accounts_json};
-			bi.rows =; {$rows_json};
+			bi.selected_account =; {$accountCode};
+			bi.accounts =; {$accountsJson};
+			bi.rows =; {$rowsJson};
 		</script>
 		<script type="text/javascript" src="bank2.js"></script>
 	</head>
 	<body>
-		<h1>Unmatched transactions of account: {$selected_account_html}</h1>
+		<h1>Unmatched transactions of account: {$selectedAccountHtml}</h1>
 		<ul id="main_list">
 		
 		</ul>

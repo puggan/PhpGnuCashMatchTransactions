@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 $query = <<<SQL_BLOCK
 SELECT
@@ -70,14 +71,3 @@ echo <<<HTML_BLOCK
 </html>
 
 HTML_BLOCK;
-
-/**
- * Class saldo_sum
- * @property string code
- * @property string name
- * @property float v
- * @property int c
- */
-class saldo_sum
-{
-}

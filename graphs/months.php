@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 require_once __DIR__ . '/../Auth.php';
 
@@ -20,6 +21,10 @@ GROUP BY 1, 2 ORDER BY 1 DESC, 2 DESC
 SQL_BLOCK;
 // WHERE (accounts.code BETWEEN 4000 AND 4900 OR accounts.code BETWEEN 8100 AND 8999)
 
+/**
+ * @param int $n number to format, put last 3 chars in class u, and the rest in class k
+ * @return string
+ */
 function f($n)
 {
     $n = round($n);
@@ -31,12 +36,10 @@ foreach ($db->objects($query) as $o) {
     $result = -$o->income - $o->cost - $o->loan_payment;
     if ($result > 0) {
         $class = 'good';
+    } elseif ($result > -$o->loan_payment) {
+        $class = 'ok';
     } else {
-        if ($result > -$o->loan_payment) {
-            $class = 'ok';
-        } else {
-            $class = 'bad';
-        }
+        $class = 'bad';
     }
     $trs[] = '<tr class="' . $class . '"><td>' .
         $o->year . '-' . str_pad($o->month, 2, '0', STR_PAD_LEFT) . '-xx' .

@@ -1,7 +1,12 @@
 <?php
+declare(strict_types=1);
 
 namespace Models;
 
+/**
+ * Class Account
+ * @package Models
+ */
 class Account implements Interfaces\Account
 {
     /**

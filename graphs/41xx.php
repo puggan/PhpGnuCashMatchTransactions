@@ -1,11 +1,12 @@
 <?php
+declare(strict_types=1);
 
 require_once __DIR__ . '/../Auth.php';
 
-$db = Auth::new_db();
+$database = Auth::new_db();
 
 $query = "SELECT code, name FROM accounts WHERE code BETWEEN 4100 AND 4199";
-$group_names = $db->read($query, 'code', 'name');
+$groupNames = $database->read($query, 'code', 'name');
 
 $query = <<<SQL_BLOCK
 SELECT
@@ -17,19 +18,19 @@ FROM splits
 WHERE accounts.code BETWEEN 4100 AND 4199
 GROUP BY 1
 SQL_BLOCK;
-$group_values = $db->read($query, 'code_group', 'v');
+$groupValues = $database->read($query, 'code_group', 'v');
 
-$trs = [];
-$pie = [];
-foreach ($group_values as $group => $value) {
-    $value_text = number_format($value, 2, '.', ' ') . ' kr';
-    $data = ['short' => $group, 'long' => $group_names[$group] ?? 'Group ' . $group, 'value_text' => $value_text];
-    $trs[] = implode("</td><td>", array_map('htmlentities', $data));
+$transactions = [];
+$pieValues = [];
+foreach ($groupValues as $group => $value) {
+    $valueText = number_format($value, 2, '.', ' ') . ' kr';
+    $data = ['short' => $group, 'long' => $groupNames[$group] ?? 'Group ' . $group, 'value_text' => $valueText];
+    $transactions[] = implode("</td><td>", array_map('htmlentities', $data));
     $data['value'] = $value;
-    $pie[] = $data;
+    $pieValues[] = $data;
 }
-$trs = "<tr><td>" . implode("</td></tr>\n\t\t\t\t<tr><td>", $trs) . "</td></tr>";
-$json_data = json_encode($pie);
+$transactions = "<tr><td>" . implode("</td></tr>\n\t\t\t\t<tr><td>", $transactions) . "</td></tr>";
+$json_data = json_encode($pieValues);
 echo <<<HTML_BLOCK
 <html>
 	<head>
@@ -140,7 +141,7 @@ echo <<<HTML_BLOCK
 				</tr>
 			</thead>
 			<tbody>
-				{$trs}
+				{$transactions}
 			</tbody>
 		</table>
 	</body>

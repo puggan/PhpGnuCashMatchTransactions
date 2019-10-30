@@ -1,4 +1,7 @@
-<?php
+<?php /** @noinspection PhpIllegalPsrClassPathInspection */
+/** @noinspection AutoloadingIssuesInspection */
+/** @noinspection AutoloadingIssuesInspection */
+declare(strict_types=1);
 
 require_once __DIR__ . '/GnuCash.php';
 
@@ -7,10 +10,12 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST');
 
 set_error_handler(
-    function ($errno, $errstr, $errfile, $errline) {
+    static function ($errno, $errstr, $errfile, $errline) {
         die(
         json_encode(
-            ['error_code' => $errno, 'message' => $errstr, 'return' => null, 'where' => "{$errfile}:{$errline}"]
+            ['error_code' => $errno, 'message' => $errstr, 'return' => null, 'where' => "{$errfile}:{$errline}"],
+            JSON_THROW_ON_ERROR,
+            512
         )
         );
     }
@@ -22,7 +27,7 @@ require_once __DIR__ . '/Auth.php';
  * Class Index
  * @property string $sVersion
  * @property GnuCash $cGnuCash
- * @property string[]|int[] $aReturn
+ * @property array $aReturn
  * @property mixed[] $aData
  * @property string[] $aAccountTypes
  */
@@ -41,12 +46,13 @@ class Index extends Auth
      */
     public function __construct()
     {
+        parent::__construct();
         if (isset($_GET['func'])) {
             $this->aData = [
                 'func' => $_GET['func'],
                 'login' => [
-                    'username' => isset($_GET['user']) ? $_GET['user'] : "",
-                    'password' => isset($_GET['pass']) ? $_GET['pass'] : "",
+                    'username' => $_GET['user'] ?? '',
+                    'password' => $_GET['pass'] ?? '',
                 ],
             ];
             if ($_GET['func'] === 'test_connection') {
@@ -57,10 +63,10 @@ class Index extends Auth
             }
         } else {
             if (!isset($_POST['data'])) {
-                $this->done("no data");
+                $this->done('no data');
             }
             $sData = base64_decode($_POST['data']);
-            $this->aData = json_decode($sData, true);
+            $this->aData = json_decode($sData, true, 512, JSON_THROW_ON_ERROR);
         }
 
         if (isset($this->aData['test_connection'])) {
@@ -68,14 +74,14 @@ class Index extends Auth
             // If appPassword, tell app we don't have the password, to enable password-fields
             if ($this->sAppPassword) {
                 $this->aReturn['hardcoded_credentials'] = 0;
-                $this->aReturn['username'] = "";
-                $this->aReturn['password'] = "";
-                $this->aReturn['database_server'] = "";
-                $this->aReturn['database'] = "";
+                $this->aReturn['username'] = '';
+                $this->aReturn['password'] = '';
+                $this->aReturn['database_server'] = '';
+                $this->aReturn['database'] = '';
             } else {
                 $this->aReturn['hardcoded_credentials'] = 1;
                 $this->aReturn['username'] = $this->sUsername;
-                $this->aReturn['password'] = $this->sPassword ? "yes" : "";
+                $this->aReturn['password'] = $this->sPassword ? 'yes' : '';
                 $this->aReturn['database_server'] = $this->sDatabaseServer;
                 $this->aReturn['database'] = $this->sDatabase;
             }
@@ -87,16 +93,16 @@ class Index extends Auth
         }
         if ($this->sAppPassword) {
             if (!isset($this->aData['login']['username'])) {
-                $this->done("Username missing");
+                $this->done('Username missing');
             }
             if (!isset($this->aData['login']['password'])) {
-                $this->done("Password missing");
+                $this->done('Password missing');
             }
             if (!isset($this->sAppPassword[$this->aData['login']['username']])) {
-                $this->done("User missing");
+                $this->done('User missing');
             }
             if (!$this->verify($this->aData['login']['username'], $this->aData['login']['password'])) {
-                $this->done("Wrong password");
+                $this->done('Wrong password');
             }
         }
 
@@ -106,21 +112,17 @@ class Index extends Auth
             $this->aReturn['message'] = "Database connection failed.<br /><b>{$this->cGnuCash->getErrorMessage()}</b>";
             $this->aReturn['error_code'] = $this->cGnuCash->getErrorCode();
             $this->done();
-        } else {
-            if (isset($this->aData['test_credentials'])) {
-                $this->aReturn['return'] = 1;
-                $this->aReturn['databases'] = [$this->sDatabase];
-                $this->aReturn['database'] = $this->sDatabase;
-                $this->done();
-            } else {
-                if (!$this->cGnuCash->getAccounts()) {
-                    $this->aReturn['message'] = 'No database specified.';
-                    if ($this->sDatabase) {
-                        $this->aReturn['message'] = "No accounts found, double check the database: {$this->sDatabase}";
-                    }
-                    $this->done();
-                }
+        } elseif (isset($this->aData['test_credentials'])) {
+            $this->aReturn['return'] = 1;
+            $this->aReturn['databases'] = [$this->sDatabase];
+            $this->aReturn['database'] = $this->sDatabase;
+            $this->done();
+        } elseif (!$this->cGnuCash->getAccounts()) {
+            $this->aReturn['message'] = 'No database specified.';
+            if ($this->sDatabase) {
+                $this->aReturn['message'] = "No accounts found, double check the database: {$this->sDatabase}";
             }
+            $this->done();
         }
 
         if (isset($this->aData['func'])) {
@@ -206,18 +208,18 @@ class Index extends Auth
      *
      * @param string $sMessage
      */
-    private function done($sMessage = null)
+    private function done($sMessage = null): void
     {
         if ($sMessage) {
             $this->aReturn['message'] = $sMessage;
         }
-        exit(json_encode($this->aReturn));
+        exit(json_encode($this->aReturn, JSON_THROW_ON_ERROR, 512));
     }
 
     /**
      * Disallow changes while database is locked
      */
-    private function checkDatabaseLock()
+    private function checkDatabaseLock(): void
     {
         $aLock = $this->cGnuCash->isLocked();
         if ($aLock) {
@@ -229,7 +231,7 @@ class Index extends Auth
     /**
      * api call: appCheckSettings
      */
-    private function appCheckSettings()
+    private function appCheckSettings(): void
     {
         $this->aReturn['return'] = 1;
         $this->aReturn['version'] = $this->sVersion;
@@ -239,7 +241,7 @@ class Index extends Auth
     /**
      * api call: appFetchAccounts
      */
-    private function appFetchAccounts()
+    private function appFetchAccounts(): void
     {
         $this->aReturn['return'] = 1;
         $this->aReturn['accounts'] = [];
@@ -248,46 +250,26 @@ class Index extends Auth
             $sPrefix = $aAccount['account_type'] . ': ';
             if (strpos($sPrefix, 'INCOME') !== false) {
                 $sPrefix = 'Income: ';
-            } else {
-                if (strpos($sPrefix, 'EXPENSE') !== false) {
-                    $sPrefix = 'Expenses: ';
-                } else {
-                    if (strpos($sPrefix, 'BANK') !== false) {
-                        $sPrefix = 'Bank: ';
-                    } else {
-                        if (strpos($sPrefix, 'ROOT') !== false) {
-                            $sPrefix = 'Root: ';
-                        } else {
-                            if (strpos($sPrefix, 'PAYABLE') !== false) {
-                                $sPrefix = 'A/P: ';
-                            } else {
-                                if (strpos($sPrefix, 'RECEIVABLE') !== false) {
-                                    $sPrefix = 'A/R: ';
-                                } else {
-                                    if (strpos($sPrefix, 'CREDIT') !== false) {
-                                        $sPrefix = 'Card: ';
-                                    } else {
-                                        if (strpos($sPrefix, 'ASSET') !== false) {
-                                            $sPrefix = 'Asset: ';
-                                        } else {
-                                            if (strpos($sPrefix, 'EQUITY') !== false) {
-                                                $sPrefix = 'Equity: ';
-                                            } else {
-                                                if (strpos($sPrefix, 'LIABILITY') !== false) {
-                                                    $sPrefix = 'Liability: ';
-                                                } else {
-                                                    if (strpos($sPrefix, 'CASH') !== false) {
-                                                        $sPrefix = 'Cash: ';
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            } elseif (strpos($sPrefix, 'EXPENSE') !== false) {
+                $sPrefix = 'Expenses: ';
+            } elseif (strpos($sPrefix, 'BANK') !== false) {
+                $sPrefix = 'Bank: ';
+            } elseif (strpos($sPrefix, 'ROOT') !== false) {
+                $sPrefix = 'Root: ';
+            } elseif (strpos($sPrefix, 'PAYABLE') !== false) {
+                $sPrefix = 'A/P: ';
+            } elseif (strpos($sPrefix, 'RECEIVABLE') !== false) {
+                $sPrefix = 'A/R: ';
+            } elseif (strpos($sPrefix, 'CREDIT') !== false) {
+                $sPrefix = 'Card: ';
+            } elseif (strpos($sPrefix, 'ASSET') !== false) {
+                $sPrefix = 'Asset: ';
+            } elseif (strpos($sPrefix, 'EQUITY') !== false) {
+                $sPrefix = 'Equity: ';
+            } elseif (strpos($sPrefix, 'LIABILITY') !== false) {
+                $sPrefix = 'Liability: ';
+            } elseif (strpos($sPrefix, 'CASH') !== false) {
+                $sPrefix = 'Cash: ';
             }
             $this->aReturn['accounts'][] = [
                 'name' => "$sPrefix{$aAccount['name']}",
@@ -302,7 +284,7 @@ class Index extends Auth
     /**
      * api call: appGetAccountDescriptions
      */
-    private function appGetAccountDescriptions()
+    private function appGetAccountDescriptions(): void
     {
         $sAccountGUID = $this->aData['account_guid'];
         $aTransactions = $this->cGnuCash->getAccountTransactions($sAccountGUID);
@@ -314,10 +296,11 @@ class Index extends Auth
         foreach ($aTransactions as $aTransaction) {
             $aTransactionInfo = $this->cGnuCash->getTransactionInfo($aTransaction['tx_guid']);
             foreach ($aTransactionInfo[1] as $aTransactionSplit) {
-                if (!in_array(
+                if ($aTransactionSplit['account_guid'] !== $aTransaction['account_guid'] && !in_array(
                         $aTransaction['description'],
-                        $aDescriptions
-                    ) and $aTransactionSplit['account_guid'] != $aTransaction['account_guid']) {
+                        $aDescriptions,
+                        true
+                    )) {
                     $aDescriptions[] = $aTransaction['description'];
                     $aTransferToAccount = $this->cGnuCash->getAccountInfo($aTransactionSplit['account_guid']);
                     $this->aReturn['descriptions'][] = [
@@ -333,7 +316,7 @@ class Index extends Auth
     /**
      * api call: appCreateTransaction
      */
-    private function appCreateTransaction()
+    private function appCreateTransaction(): void
     {
         $this->checkDatabaseLock();
         $sDebitGUID = $this->aData['debit_guid'];
@@ -342,7 +325,7 @@ class Index extends Auth
         $sDescription = $this->aData['description'];
         $sDate = $this->aData['date'];
         if (!$sDate) {
-            $sDate = date('Y-m-d H:i:s', time());
+            $sDate = date('Y-m-d H:i:s');
         } else {
             $sDate = date('Y-m-d H:i:s', strtotime($sDate));
         }
@@ -354,35 +337,26 @@ class Index extends Auth
 
         if (!$this->cGnuCash->GUIDExists($sDebitGUID)) {
             $this->aReturn['message'] = "GUID: $sDebitGUID does not exist for to account.";
+        } elseif (!$this->cGnuCash->GUIDExists($sCreditGUID)) {
+            $this->aReturn['message'] = "GUID: $sCreditGUID does not exist for from account.";
+        } elseif (!is_numeric($fAmount)) {
+            $this->aReturn['message'] = "$fAmount is not a valid number.";
+        } elseif (empty($sDescription)) {
+            $this->aReturn['message'] = 'Please enter a name for this transaction.';
+        } elseif (empty($sDate) || !(bool) strtotime($sDate)) {
+            $this->aReturn['message'] = 'Please enter a valid date for this transaction.';
         } else {
-            if (!$this->cGnuCash->GUIDExists($sCreditGUID)) {
-                $this->aReturn['message'] = "GUID: $sCreditGUID does not exist for from account.";
-            } else {
-                if (!is_numeric($fAmount)) {
-                    $this->aReturn['message'] = "$fAmount is not a valid number.";
-                } else {
-                    if (empty($sDescription)) {
-                        $this->aReturn['message'] = 'Please enter a name for this transaction.';
-                    } else {
-                        if (empty($sDate) or !(bool) strtotime($sDate)) {
-                            $this->aReturn['message'] = 'Please enter a valid date for this transaction.';
-                        } else {
-                            $this->aReturn['message'] = $this->cGnuCash->createTransaction(
-                                $sDebitGUID,
-                                $sCreditGUID,
-                                $fAmount,
-                                $sDescription,
-                                $sDate,
-                                $sMemo
-                            );
-                            if ($this->aReturn['message']) {
-                            } else {
-                                $this->aReturn['return'] = 1;
-                                $this->aReturn['message'] = 'Transaction successful.';
-                            }
-                        }
-                    }
-                }
+            $this->aReturn['message'] = $this->cGnuCash->createTransaction(
+                $sDebitGUID,
+                $sCreditGUID,
+                $fAmount,
+                $sDescription,
+                $sDate,
+                $sMemo
+            );
+            if (!$this->aReturn['message']) {
+                $this->aReturn['return'] = 1;
+                $this->aReturn['message'] = 'Transaction successful.';
             }
         }
     }
@@ -390,26 +364,24 @@ class Index extends Auth
     /**
      * api call: appDeleteTransaction
      */
-    private function appDeleteTransaction()
+    private function appDeleteTransaction(): void
     {
         $sTransactionGUID = $this->aData['guid'];
 
         if (!$this->cGnuCash->GUIDExists($sTransactionGUID)) {
             $this->aReturn['message'] = "GUID: $sTransactionGUID does not exist.";
+        } elseif (!$this->cGnuCash->deleteTransaction($sTransactionGUID)) {
+            $this->aReturn['message'] = 'Failed to delete transaction.';
         } else {
-            if (!$this->cGnuCash->deleteTransaction($sTransactionGUID)) {
-                $this->aReturn['message'] = 'Failed to delete transaction.';
-            } else {
-                $this->aReturn['return'] = 1;
-                $this->aReturn['message'] = 'Successfully deleted transaction.';
-            }
+            $this->aReturn['return'] = 1;
+            $this->aReturn['message'] = 'Successfully deleted transaction.';
         }
     }
 
     /**
      * api call: appGetAccountTransactions
      */
-    private function appGetAccountTransactions()
+    private function appGetAccountTransactions(): void
     {
         $sAccountGUID = $this->aData['guid'];
         $this->aReturn['transactions'] = [];
@@ -419,13 +391,13 @@ class Index extends Auth
         if ($aTransactions) {
             $this->aReturn['return'] = 1;
             foreach ($aTransactions as $aTransaction) {
-                $aDate = explode(' ', $aTransaction['post_date']);
+                $aDate = strstr($aTransaction['post_date'], ' ', true);
                 $this->aReturn['transactions'][] = [
                     'guid' => $aTransaction['tx_guid'],
                     'description' => $aTransaction['description'],
-                    'amount' => number_format(($aTransaction['value_num'] / $aTransaction['value_denom']), 2),
+                    'amount' => number_format($aTransaction['value_num'] / $aTransaction['value_denom'], 2),
                     'memo' => $aTransaction['memo'],
-                    'date' => date('m-d-y', strtotime($aDate[0])),
+                    'date' => date('m-d-y', strtotime($aDate)),
                     'reconciled' => isset($rstates[$aTransaction['reconcile_state']]),
                 ];
             }
@@ -437,7 +409,7 @@ class Index extends Auth
     /**
      * api call: appUpdateTransactionReconciledStatus
      */
-    private function appUpdateTransactionReconciledStatus()
+    private function appUpdateTransactionReconciledStatus(): void
     {
         $sTransactionGUID = $this->aData['guid'];
         $bReconciled = filter_var($this->aData['reconciled'], FILTER_VALIDATE_BOOLEAN);
@@ -456,7 +428,7 @@ class Index extends Auth
     /**
      * api call: appGetAccountHeirarchy
      */
-    private function appGetAccountHeirarchy()
+    private function appGetAccountHeirarchy(): void
     {
         $aAccounts = $this->cGnuCash->getAllAccounts();
 
@@ -475,7 +447,7 @@ class Index extends Auth
      * @param mixed[] $aHeirarchyPointer
      * @param string[] $aKeys
      */
-    private function copyAccounts($aAccount, &$aHeirarchyPointer, $aKeys)
+    private function copyAccounts($aAccount, &$aHeirarchyPointer, $aKeys): void
     {
         if ($aAccount['name'] === 'Template Root') {
             return;
@@ -507,19 +479,17 @@ class Index extends Auth
             }
             $aKeys[] = $aAccount['guid'];
             foreach ($aChildAccounts as $aChildAccount) {
-                copyAccounts($this, $aChildAccount, $aHeirarchyPointer, $aKeys);
+                $this->copyAccounts( $aChildAccount, $aHeirarchyPointer, $aKeys);
             }
-        } else {
-            if (!in_array($aAccount['guid'], $aTempHeirarchy)) {
-                $aTempHeirarchy[$aAccount['guid']] = $aNewAccount;
-            }
+        } elseif (!in_array($aAccount['guid'], $aTempHeirarchy, true)) {
+            $aTempHeirarchy[$aAccount['guid']] = $aNewAccount;
         }
     }
 
     /**
      * api call: appRenameAccount
      */
-    public function appRenameAccount()
+    public function appRenameAccount(): void
     {
         $this->aReturn['return'] = $this->cGnuCash->renameAccount(
                 $this->aData['guid'],
@@ -530,7 +500,7 @@ class Index extends Auth
     /**
      * api call: appDeleteAccount
      */
-    public function appDeleteAccount()
+    public function appDeleteAccount(): void
     {
         $aReturn = $this->cGnuCash->deleteAccount($this->aData['guid']);
         $this->aReturn['return'] = $aReturn[0] * 1;
@@ -540,7 +510,7 @@ class Index extends Auth
     /**
      * api call: appCreateAccount
      */
-    public function appCreateAccount()
+    public function appCreateAccount(): void
     {
         $sName = $this->aData['name'];
         $sAccountType = $this->aData['account_type'];
@@ -557,7 +527,7 @@ class Index extends Auth
     /**
      * api call: appGetCreateAccountDialog
      */
-    public function appGetCreateAccountDialog()
+    public function appGetCreateAccountDialog(): void
     {
         $sAccountTypeDropdown = '<select class="ui dropdown" name="account_type">';
         foreach ($this->aAccountTypes as $sType) {
@@ -594,7 +564,7 @@ class Index extends Auth
     /**
      * api call: appChangeAccountParent
      */
-    public function appChangeAccountParent()
+    public function appChangeAccountParent(): void
     {
         $this->aReturn['return'] = $this->cGnuCash->changeAccountParent(
                 $this->aData['guid'],
@@ -605,7 +575,7 @@ class Index extends Auth
     /**
      * api call: appChangeTransactionDescription
      */
-    public function appChangeTransactionDescription()
+    public function appChangeTransactionDescription(): void
     {
         $this->aReturn['return'] = $this->cGnuCash->changeTransactionDescription(
             $this->aData['transaction_guid'],
@@ -616,7 +586,7 @@ class Index extends Auth
     /**
      * api call: appChangeTransactionAmount
      */
-    public function appChangeTransactionAmount()
+    public function appChangeTransactionAmount(): void
     {
         $this->aReturn['return'] = $this->cGnuCash->changeTransactionAmount(
             $this->aData['transaction_guid'],
@@ -626,8 +596,9 @@ class Index extends Auth
 
     /**
      * api call: appChangeTransactionDate
+     * @throws Exception
      */
-    public function appChangeTransactionDate()
+    public function appChangeTransactionDate(): void
     {
         $sDate = date('Y-m-d H:i:s', strtotime($this->aData['new_date']));
         $this->aReturn['return'] = $this->cGnuCash->changeTransactionDate($this->aData['transaction_guid'], $sDate);
