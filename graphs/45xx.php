@@ -1,6 +1,8 @@
 <?php
 
-require_once(__DIR__ . "/../auth.php");
+require_once __DIR__ . '/../Auth.php';
+require_once __DIR__ . '/Auth.php';
+
 $db = Auth::new_db();
 
 $query = "SELECT code, name FROM accounts WHERE code BETWEEN 4500 AND 4599";

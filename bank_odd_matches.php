@@ -3,9 +3,9 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once(__DIR__ . "/auth.php");
-require_once(__DIR__ . "/gnucach.php");
-require_once(__DIR__ . "/token_auth.php");
+require_once __DIR__ . '/Auth.php';
+require_once __DIR__ . '/GnuCash.php';
+require_once __DIR__ . '/token_auth.php';
 
 $db = Auth::new_db();
 

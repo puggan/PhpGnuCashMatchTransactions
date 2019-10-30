@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
 
 if (empty($_GET['account'])) {

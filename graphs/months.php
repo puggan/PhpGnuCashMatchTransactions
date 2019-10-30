@@ -1,6 +1,7 @@
 <?php
 
-require_once(__DIR__ . "/../auth.php");
+require_once __DIR__ . '/../Auth.php';
+
 $db = Auth::new_db();
 
 $query = <<<SQL_BLOCK

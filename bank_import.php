@@ -1,7 +1,7 @@
 <?php
 
-require_once(__DIR__ . "/token_auth.php");
-require_once(__DIR__ . "/auth.php");
+require_once __DIR__ . '/Auth.php';
+require_once __DIR__ . '/token_auth.php';
 
 define("REGEXP_INT", "#^(0|-?[1-9][0-9]*)$#");
 define("REGEXP_DATE", "#^(20[0-9][0-9])-([0-1][0-9])-([0-3][0-9])$#");

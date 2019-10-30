@@ -1,6 +1,6 @@
 <?php
 
-require_once(__DIR__ . "/gnucach.php");
+require_once __DIR__ . '/GnuCash.php';
 
 header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
@@ -16,7 +16,7 @@ set_error_handler(
     }
 );
 
-require_once("auth.php");
+require_once __DIR__ . '/Auth.php';
 
 /**
  * Class Index

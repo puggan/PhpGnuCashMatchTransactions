@@ -7,8 +7,8 @@ if (empty($_GET['account'])) {
 
 $account_code = (int) $_GET['account'];
 
-require_once(__DIR__ . "/token_auth.php");
-require_once(__DIR__ . "/bank_funk.php");
+require_once __DIR__ . '/token_auth.php';
+require_once __DIR__ . '/bank_funk.php';
 $bi = new Bank_interface();
 $accounts = $bi->accounts();
 

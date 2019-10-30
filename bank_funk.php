@@ -1,7 +1,7 @@
 <?php
 
-require_once(__DIR__ . "/auth.php");
-require_once(__DIR__ . "/gnucach.php");
+require_once __DIR__ . '/Auth.php';
+require_once __DIR__ . '/GnuCash.php';
 
 /**
  * Class Bank_interface

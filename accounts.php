@@ -12,7 +12,7 @@ FROM splits
 GROUP BY accounts.code
 SQL_BLOCK;
 
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
 
 $db = Auth::new_db();

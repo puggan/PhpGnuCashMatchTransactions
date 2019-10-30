@@ -1,6 +1,6 @@
 <?php
 
-require_once(__DIR__ . "/auth.php");
+require_once __DIR__ . '/Auth.php';
 
 $auth_error = null;
 if (!cookie_token_auth() && $_POST) {
