@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-use Models\BankTransaction;
+use Puggan\GnuCashMatcher\Models\BankTransaction;
 
 require_once __DIR__ . '/bank_funk.php';
 require_once __DIR__ . '/Models/BankTransaction.php';

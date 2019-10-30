@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace PhpDoc {
 
-    use Models\Combined\BankTransactionMatchingAcconts;
-    use Models\Combined\BankTransactionMatchingSplits;
+    use Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingAcconts;
+    use Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingSplits;
 
     /**
      * Class saldo_sum
@@ -128,6 +128,44 @@ namespace PhpDoc {
      * @property string bank_t_row
      */
     class table_db_result_missing_splits
+    {
+    }
+
+    /**
+     * Class table_db_result_row_odd_match
+     * @property int row_count
+     * @property int account_count
+     * @property string[] accounts
+     * @property string matchtext
+     */
+    class table_db_result_row_odd_match
+    {
+    }
+
+    /**
+     * Class table_db_result_row_text_match
+     * @property string code
+     * @property string name
+     * @property string connections
+     * @property int|float amount_from
+     * @property int|float amount_to
+     * @property string date_from
+     * @property string date_to
+     */
+    class table_db_result_row_text_match
+    {
+    }
+
+    /**
+     * Class table_db_result_row_value_date_description_guid
+     * @property string row
+     * @property string value
+     * @property string date
+     * @property string description
+     * @property string guid
+     * @property string other_account
+     */
+    class table_db_result_row_value_date_description_guid
     {
     }
 }

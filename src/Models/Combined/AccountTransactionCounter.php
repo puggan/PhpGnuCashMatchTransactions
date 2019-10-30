@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../Interfaces/Account.php';
 
-namespace Models\Combined;
+namespace Puggan\GnuCashMatcher\Models\Combined;
 
-use Models\Interfaces\Account;
+use Puggan\GnuCashMatcher\Models\Interfaces\Account;
 
 /**
  * Class MissingTransactionsAccounts
@@ -20,12 +20,12 @@ use Models\Interfaces\Account;
 class AccountTransactionCounter implements Account
 {
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param string $accountCode
      * @param string $startDate
      * @return self|null
      */
-    public static function listMissing(\db $db, string $accountCode, string $startDate = '2016-09-01'): ?self
+    public static function listMissing(\Puggan\GnuCashMatcher\DB $db, string $accountCode, string $startDate = '2016-09-01'): ?self
     {
         $startDateSql = $db->quote($startDate);
         $accountCodeSql = $db->quote($accountCode);

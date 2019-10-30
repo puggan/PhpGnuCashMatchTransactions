@@ -38,17 +38,17 @@ class Auth
     // ***
 
     /**
-     * @return db
+     * @return \Puggan\GnuCashMatcher\DB
      */
-    public function db(): \db
+    public function db(): \Puggan\GnuCashMatcher\DB
     {
-        return new db($this->sDatabase, $this->sUsername, $this->sPassword, $this->sDatabaseServer, $this->sPort);
+        return new \Puggan\GnuCashMatcher\DB($this->sDatabase, $this->sUsername, $this->sPassword, $this->sDatabaseServer, $this->sPort);
     }
 
     /**
-     * @return \db
+     * @return \Puggan\GnuCashMatcher\DB
      */
-    public static function new_db(): \db
+    public static function new_db(): \Puggan\GnuCashMatcher\DB
     {
         return (new self())->db();
     }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../Interfaces/Account.php';
 require_once __DIR__ . '/../Interfaces/BankTransaction.php';
 
-namespace Models\Combined;
+namespace Puggan\GnuCashMatcher\Models\Combined;
 
-use Models\Interfaces\Account;
-use Models\Interfaces\BankTransaction;
+use Puggan\GnuCashMatcher\Models\Interfaces\Account;
+use Puggan\GnuCashMatcher\Models\Interfaces\BankTransaction;
 
 /**
  * Class table_db_result_row_text_match
@@ -20,11 +20,11 @@ use Models\Interfaces\BankTransaction;
 class BankTransactionMatchingAcconts implements Account
 {
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param BankTransaction $bankTransaction
      * @return self[]
      */
-    public function list(\db $db, BankTransaction $bankTransaction): array
+    public function list(\Puggan\GnuCashMatcher\DB $db, BankTransaction $bankTransaction): array
     {
         $query = <<<SQL_BLOCK
 SELECT

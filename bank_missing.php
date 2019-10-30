@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-use Models\Combined\AccountTransactionCounter;
-use Models\Split;
+use Puggan\GnuCashMatcher\Models\Combined\AccountTransactionCounter;
+use Puggan\GnuCashMatcher\Models\Split;
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -369,8 +369,8 @@ ORDER BY ABS(splits.value_num - bank_transactions.amount * splits.value_denom),
 SQL_BLOCK;
 
     $count = 0;
-    /** @var \db $database Why is this needed? */
-    /** @var \Models\Combined\BankTransactionMatchingSplits $match_row */
+    /** @var \Puggan\GnuCashMatcher\DB $database Why is this needed? */
+    /** @var \Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingSplits $match_row */
     foreach ($database->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK
@@ -425,7 +425,7 @@ SQL_BLOCK;
 
     $count = 0;
 
-    /** @var \Models\Combined\BankTransactionMatchingAcconts $match_row */
+    /** @var \Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingAcconts $match_row */
     foreach ($database->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK

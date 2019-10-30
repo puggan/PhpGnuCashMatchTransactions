@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-use Models\BankTransaction;
+use Puggan\GnuCashMatcher\Models\BankTransaction;
 
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';

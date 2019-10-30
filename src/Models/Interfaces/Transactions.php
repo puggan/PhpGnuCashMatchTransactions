@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Models\Interfaces;
+namespace Puggan\GnuCashMatcher\Models\Interfaces;
 
 /**
  * @property string guid

@@ -1,6 +1,6 @@
 <?php
 
-use Models\BankTransaction;
+use Puggan\GnuCashMatcher\Models\BankTransaction;
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -379,7 +379,7 @@ ORDER BY ABS(splits.value_num - bank_transactions.amount * splits.value_denom),
 SQL_BLOCK;
 
     $count = 0;
-    /** @var table_db_result_row_value_date_description_guid $match_row */
+    /** @var \PhpDoc\table_db_result_row_value_date_description_guid $match_row */
     foreach ($db->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK
@@ -434,7 +434,7 @@ SQL_BLOCK;
 
     $count = 0;
 
-    /** @var table_db_result_row_text_match $match_row */
+    /** @var \PhpDoc\table_db_result_row_text_match $match_row */
     foreach ($db->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK

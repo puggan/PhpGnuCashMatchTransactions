@@ -388,8 +388,8 @@ ORDER BY ABS(splits.value_num - bank_transactions.amount * splits.value_denom),
 SQL_BLOCK;
 
     $count = 0;
-    /** @var \db $database why is this row needed? */
-    /** @var \Models\Combined\BankTransactionMatchingSplits $match_row */
+    /** @var \Puggan\GnuCashMatcher\DB $database why is this row needed? */
+    /** @var \Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingSplits $match_row */
     foreach ($database->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK
@@ -444,7 +444,7 @@ SQL_BLOCK;
 
     $count = 0;
 
-    /** @var \Models\Combined\BankTransactionMatchingAcconts $match_row */
+    /** @var \Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingAcconts $match_row */
     foreach ($database->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK

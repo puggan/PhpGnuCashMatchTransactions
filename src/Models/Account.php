@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Interfaces/Account.php';
 
-namespace Models;
+namespace Puggan\GnuCashMatcher\Models;
 
 /**
  * Class Account
@@ -12,12 +12,12 @@ namespace Models;
 class Account implements Interfaces\Account
 {
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param string $guid
      *
      * @return self|null
      */
-    public static function find(\db $db, string $guid): ?self
+    public static function find(\Puggan\GnuCashMatcher\DB $db, string $guid): ?self
     {
         $query = 'SELECT * FROM accounts WHERE guid = ' . $db->quote($guid);
 
@@ -27,11 +27,11 @@ class Account implements Interfaces\Account
     }
 
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param string|null $index
      * @return array
      */
-    public static function all(\db $db, $index): array
+    public static function all(\Puggan\GnuCashMatcher\DB $db, $index): array
     {
         /** @var self[] $accounts */
         $accounts = $db->objects('SELECT * FROM accounts', $index, self::class);
@@ -39,11 +39,11 @@ class Account implements Interfaces\Account
     }
 
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param int $minLength
      * @return self[]
      */
-    public static function listCodes(\db $db, int $minLength = 4): array
+    public static function listCodes(\Puggan\GnuCashMatcher\DB $db, int $minLength = 4): array
     {
         /** @var self[] $accounts */
         $accounts = $db->objects('SELECT * FROM accounts WHERE LENGTH(code) >= ' . $minLength, 'code', self::class);
@@ -51,11 +51,11 @@ class Account implements Interfaces\Account
     }
 
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param int $minLength
      * @return string[]
      */
-    public static function codeNames(\db $db, int $minLength = 4): array
+    public static function codeNames(\Puggan\GnuCashMatcher\DB $db, int $minLength = 4): array
     {
         /** @var self[] $accounts */
         $accounts = $db->read('SELECT * FROM accounts WHERE LENGTH(code) >= ' . $minLength, 'code', 'name');

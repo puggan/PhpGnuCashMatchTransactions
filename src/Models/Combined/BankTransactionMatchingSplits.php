@@ -4,10 +4,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../Interfaces/BankTransaction.php';
 require_once __DIR__ . '/../Interfaces/Split.php';
 
-namespace Models\Combined;
+namespace Puggan\GnuCashMatcher\Models\Combined;
 
-use Models\Interfaces\BankTransaction;
-use Models\Interfaces\Split;
+use Puggan\GnuCashMatcher\Models\Interfaces\BankTransaction;
+use Puggan\GnuCashMatcher\Models\Interfaces\Split;
 
 /**
  * Class table_db_result_row_value_date_description_guid
@@ -19,11 +19,11 @@ use Models\Interfaces\Split;
 class BankTransactionMatchingSplits implements Split
 {
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param BankTransaction $bankTransaction
      * @return self[]
      */
-    public function list(\db $db, BankTransaction $bankTransaction): array
+    public function list(\Puggan\GnuCashMatcher\DB $db, BankTransaction $bankTransaction): array
     {
         $query = <<<SQL_BLOCK
 SELECT

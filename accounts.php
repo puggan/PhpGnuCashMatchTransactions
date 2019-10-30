@@ -20,7 +20,7 @@ $db = Auth::new_db();
 $sum = 0;
 $trs = [];
 
-/** @var saldo_sum $o */
+/** @var \PhpDoc\saldo_sum $o */
 foreach ($db->g_objects($query, 'code') as $o) {
     $trs[] = implode(
         PHP_EOL,

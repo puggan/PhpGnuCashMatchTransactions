@@ -5,10 +5,10 @@ require_once __DIR__ . '/Combined/BankTransactionMatchingAcconts.php';
 require_once __DIR__ . '/Combined/BankTransactionMatchingSplits.php';
 require_once __DIR__ . '/Interfaces/BankTransaction.php';
 
-namespace Models;
+namespace Puggan\GnuCashMatcher\Models;
 
-use Models\Combined\BankTransactionMatchingAcconts;
-use Models\Combined\BankTransactionMatchingSplits;
+use Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingAcconts;
+use Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingSplits;
 
 /**
  * Class table_bank_transactions
@@ -16,7 +16,7 @@ use Models\Combined\BankTransactionMatchingSplits;
 class BankTransaction implements Interfaces\BankTransaction
 {
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param int $row_nr
      *
      * @return self|null
@@ -31,7 +31,7 @@ class BankTransaction implements Interfaces\BankTransaction
     }
 
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      *
      * @return BankTransactionMatchingSplits[]
      */
@@ -41,7 +41,7 @@ class BankTransaction implements Interfaces\BankTransaction
     }
 
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      *
      * @return BankTransactionMatchingAcconts[]
      */
@@ -51,7 +51,7 @@ class BankTransaction implements Interfaces\BankTransaction
     }
 
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      */
     public function save_cache($db): void
     {
@@ -87,7 +87,7 @@ SQL_BLOCK;
         $db->write($query);
     }
 
-    public function add(\db $db)
+    public function add(\Puggan\GnuCashMatcher\DB $db)
     {
         $query = <<<SQL_BLOCK
 INSERT INTO bank_transactions SET

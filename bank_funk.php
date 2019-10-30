@@ -5,8 +5,8 @@
 /** @noinspection AutoloadingIssuesInspection */
 declare(strict_types=1);
 
-use Models\Account;
-use Models\BankTransaction;
+use Puggan\GnuCashMatcher\Models\Account;
+use Puggan\GnuCashMatcher\Models\BankTransaction;
 
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/GnuCash.php';
@@ -16,7 +16,7 @@ require_once __DIR__ . '/Models/BankTransaction.php';
 /**
  * Class Bank_interface
  *
- * @property db $db
+ * @property \Puggan\GnuCashMatcher\DB $db
  * @property GnuCash gc
  */
 class Bank_interface
@@ -34,9 +34,9 @@ class Bank_interface
     }
 
     /**
-     * @return db
+     * @return \Puggan\GnuCashMatcher\DB
      */
-    public function db(): \db
+    public function db(): \Puggan\GnuCashMatcher\DB
     {
         return $this->db;
     }

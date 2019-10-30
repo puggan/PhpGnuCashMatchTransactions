@@ -1,9 +1,12 @@
-<?php /** @noinspection PhpUnused */
+<?php
+/** @noinspection PhpUnused */
 /** @noinspection PhpUnused */
 /** @noinspection PhpVariableNamingConventionInspection */
 /** @noinspection PhpMethodNamingConventionInspection */
 /** @noinspection PhpClassNamingConventionInspection */
 declare(strict_types=1);
+
+namespace Puggan\GnuCashMatcher;
 
 /**
  * Class db
@@ -12,7 +15,7 @@ declare(strict_types=1);
  * @property string last_query
  * @property string last_error
  */
-class db
+class DB
 {
     /**
      * db constructor.
@@ -26,11 +29,11 @@ class db
     public function __construct(string $database, string $username, string $password, string $host = null, int $port = null)
     {
         if (!$host) {
-            $this->link = new mysqli('localhost', $username, $password, $database);
+            $this->link = new \mysqli('localhost', $username, $password, $database);
         } elseif (!$port) {
-            $this->link = new mysqli($host, $username, $password, $database);
+            $this->link = new \mysqli($host, $username, $password, $database);
         } else {
-            $this->link = new mysqli($host, $username, $password, $database, $port);
+            $this->link = new \mysqli($host, $username, $password, $database, $port);
         }
 
         if ($this->link) {
@@ -52,7 +55,7 @@ class db
     /**
      * @param string $query
      *
-     * @return mysqli_result|false
+     * @return \mysqli_result|false
      */
     public function query(string $query)
     {
@@ -159,7 +162,7 @@ class db
      * @param string $index
      * @param string $column
      *
-     * @return Generator|string[][]|int[][]|string[]|int[]
+     * @return \Generator|string[][]|int[][]|string[]|int[]
      * @throws \RuntimeException
      */
     public function g_read(string $query, string $index = null, string $column = null)
@@ -190,7 +193,7 @@ class db
      * @param string $index
      * @param string $class_name
      *
-     * @return false|stdClass[]
+     * @return false|\stdClass[]
      */
     public function objects(string $query, string $index = null, string $class_name = null)
     {
@@ -220,7 +223,7 @@ class db
      * @param string $index
      * @param string $class_name
      *
-     * @return Generator|stdClass[]
+     * @return \Generator|\stdClass[]
      * @throws \RuntimeException
      * @noinspection PhpVariableVariableInspection
      */
@@ -274,10 +277,10 @@ class db
 
     /**
      * @param string $query
-     * @param bool|stdClass $default
+     * @param bool|\stdClass $default
      * @param string $class_name
      *
-     * @return bool|stdClass
+     * @return bool|\stdClass
      */
     public function object(string $query, $default = false, string $class_name = null)
     {
@@ -303,7 +306,7 @@ class db
     }
 
     /**
-     * @param mysqli_result $resource
+     * @param \mysqli_result $resource
      *
      * @return mixed[]|null
      */
@@ -313,7 +316,7 @@ class db
     }
 
     /**
-     * @param mysqli_result $resource
+     * @param \mysqli_result $resource
      */
     public static function close($resource): void
     {

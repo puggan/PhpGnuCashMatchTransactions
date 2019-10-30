@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Interfaces/Split.php';
 
-namespace Models;
+namespace Puggan\GnuCashMatcher\Models;
 /**
  * Class Split
  * @package Models
@@ -11,12 +11,12 @@ namespace Models;
 class Split implements Interfaces\Split
 {
     /**
-     * @param \db $db
+     * @param \Puggan\GnuCashMatcher\DB $db
      * @param string $guid
      *
      * @return self|null
      */
-    public static function find(\db $db, string $guid): ?self
+    public static function find(\Puggan\GnuCashMatcher\DB $db, string $guid): ?self
     {
         $primaryKey = $db->quote($guid);
         $query = <<<SQL_BLOCK

@@ -74,7 +74,7 @@ $count = 0;
 $day_count = 0;
 $last_day = null;
 
-/** @var table_db_result_row_odd_match $match_row */
+/** @var \PhpDoc\table_db_result_row_odd_match $match_row */
 foreach ($db->objects($query) as $row) {
     $row->day = substr($row->post_date, 0, 10);
     $row->value = round($row->value_num / $row->value_denom, 2);
