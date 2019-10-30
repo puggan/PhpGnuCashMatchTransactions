@@ -12,6 +12,7 @@ GROUP BY 1
 SQL_BLOCK;
 
 	require_once(__DIR__ . "/auth.php");
+	require_once(__DIR__ . "/token_auth.php");
 
 	$db = Auth::new_db();
 	$sum = 0;

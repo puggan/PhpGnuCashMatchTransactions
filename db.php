@@ -1,11 +1,24 @@
 <?php
 
+	/**
+	 * Class db
+	 *
+	 * @property \mysqli link
+	 * @property string last_query
+	 * @property string last_error
+	 */
 	class db
 	{
-		public $link;
-		public $last_query;
-
-		function __construct($database, $username, $password, $host = NULL, $port = NULL)
+		/**
+		 * db constructor.
+		 *
+		 * @param string $database
+		 * @param string $username
+		 * @param string $password
+		 * @param string|NULL $host
+		 * @param int|NULL $port
+		 */
+		function __construct(string $database, string $username, string $password, string $host = NULL, int $port = NULL)
 		{
 			if(!$host)
 			{
@@ -31,12 +44,20 @@
 			}
 		}
 
+		/**
+		 * db destructor
+		 */
 		function __destruct()
 		{
 			unset($this->link);
 		}
 
-		function query($query)
+		/**
+		 * @param string $query
+		 *
+		 * @return mysqli_result|false
+		 */
+		function query(string $query)
 		{
 			if(!$this->link OR !$this->link->ping())
 			{
@@ -52,7 +73,12 @@
 			return $this->link->query($query);
 		}
 
-		function write($query)
+		/**
+		 * @param string $query
+		 *
+		 * @return bool
+		 */
+		function write(string $query)
 		{
 			$result = $this->query($query);
 
@@ -68,7 +94,12 @@
 			return FALSE;
 		}
 
-		function insert($query)
+		/**
+		 * @param string $query
+		 *
+		 * @return int|string|false
+		 */
+		function insert(string $query)
 		{
 			$result = $this->write($query);
 
@@ -77,7 +108,12 @@
 			return $result;
 		}
 
-		function update($query)
+		/**
+		 * @param string $query
+		 *
+		 * @return int|false
+		 */
+		function update(string $query)
 		{
 			$result = $this->write($query);
 
@@ -86,7 +122,14 @@
 			return $result;
 		}
 
-		function read($query, $index = NULL, $column = NULL)
+		/**
+		 * @param string $query
+		 * @param string $index
+		 * @param string $column
+		 *
+		 * @return false|string[][]|int[][]|string[]|int[]
+		 */
+		function read(string $query, string $index = NULL, string $column = NULL)
 		{
 			$resource = $this->query($query);
 
@@ -111,7 +154,15 @@
 			return $result;
 		}
 
-		function g_read($query, $index = NULL, $column = NULL)
+		/**
+		 * @param string $query
+		 * @param string $index
+		 * @param string $column
+		 *
+		 * @return Generator|string[][]|int[][]|string[]|int[]
+		 * @throws Exception
+		 */
+		function g_read(string $query, string $index = NULL, string $column = NULL)
 		{
 			$resource = $this->query($query);
 
@@ -140,7 +191,14 @@
 			$resource->free();
 		}
 
-		function objects($query, $index = NULL, $class_name = NULL)
+		/**
+		 * @param string $query
+		 * @param string $index
+		 * @param string $class_name
+		 *
+		 * @return false|stdClass[]
+		 */
+		function objects(string $query, string $index = NULL, string $class_name = NULL)
 		{
 			$result = array();
 			$resource = $this->query($query);
@@ -164,7 +222,15 @@
 			return $result;
 		}
 
-		function g_objects($query, $index = NULL, $class_name = NULL)
+		/**
+		 * @param string $query
+		 * @param string $index
+		 * @param string $class_name
+		 *
+		 * @return Generator|stdClass[]
+		 * @throws Exception
+		 */
+		function g_objects(string $query, string $index = NULL, string $class_name = NULL)
 		{
 			$resource = $this->query($query);
 
@@ -185,7 +251,13 @@
 			$resource->free();
 		}
 
-		function get($query, $default = FALSE)
+		/**
+		 * @param string $query
+		 * @param bool $default
+		 *
+		 * @return false|string[]|int[]|string|int
+		 */
+		function get(string $query, $default = FALSE)
 		{
 			$resource = $this->query($query);
 
@@ -208,7 +280,14 @@
 			return $row;
 		}
 
-		function object($query, $default = FALSE, $class_name = NULL)
+		/**
+		 * @param string $query
+		 * @param bool|stdClass $default
+		 * @param string $class_name
+		 *
+		 * @return bool|stdClass
+		 */
+		function object(string $query, $default = FALSE, string $class_name = NULL)
 		{
 			$resource = $this->query($query);
 
@@ -231,17 +310,32 @@
 			return $row;
 		}
 
+		/**
+		 * @param $resource
+		 *
+		 * @return mixed[]
+		 */
 		function fetch($resource)
 		{
 			return $resource->fetch_array(MYSQLI_ASSOC);
 		}
 
+		/**
+		 * @param $resource
+		 *
+		 * @return mixed
+		 */
 		function close($resource)
 		{
 			return $resource->free();
 		}
 
-		function quote($string)
+		/**
+		 * @param string $string
+		 *
+		 * @return string
+		 */
+		function quote(string $string)
 		{
 			return "'" . $this->link->real_escape_string($string) . "'";
 		}

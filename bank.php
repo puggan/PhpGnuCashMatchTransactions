@@ -18,13 +18,21 @@ SELECT
 	MAX(IF(bank_tid IS NULL, NULL, bank_transactions.bdate)) AS fdate,
 	SUM(IF(bank_tid IS NULL, GREATEST(bank_transactions.amount, 0), NULL)) AS missingPos,
 	SUM(IF(bank_tid IS NULL, LEAST(bank_transactions.amount, 0), NULL)) AS missingNeg,
-	COUNT(DISTINCT IF(bank_tid IS NULL, bank_transactions.bank_t_row, NULL)) AS erows,
-	COUNT(DISTINCT bank_transactions.bank_t_row) AS rows
+	COUNT(DISTINCT IF(bank_tid IS NULL, bank_transactions.bank_t_row, NULL)) AS erowc,
+	COUNT(DISTINCT bank_transactions.bank_t_row) AS rowc,
+	accounts.guid AS account_guid
 FROM bank_transactions
 	INNER JOIN accounts ON (accounts.code = bank_transactions.account)
 WHERE bdate >= '2016-09-01'
 GROUP BY account
 SQL_BLOCK;
+
+		$saldo_query = <<<SQL_BLOCK
+SELECT account_guid, SUM(value_num/value_denom) AS s
+FROM splits
+GROUP BY account_guid
+SQL_BLOCK;
+		$saldos = $db->read($saldo_query, 'account_guid', 's');
 
 		echo <<<HTML_BLOCK
 <html>
@@ -51,6 +59,7 @@ SQL_BLOCK;
 					<th>% Empty</th>
 					<th>Income</th>
 					<th>Fees</th>
+					<th>Saldo</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -61,9 +70,10 @@ HTML_BLOCK;
 		/** @var table_db_result_account_name_rows $row */
 		foreach($db->g_objects($query) as $row)
 		{
-			$row->prows = (int) (100 * $row->erows / $row->rows);
+			$row->prowc = (int) (100 * $row->erowc / $row->rowc);
 			$row->pos = (($row->missingPos > 0) ? number_format($row->missingPos, 2, '.', ' ') : '');
 			$row->neg = (($row->missingNeg < 0) ? number_format($row->missingNeg, 2, '.', ' ') : '');
+			$row->saldo = number_format(empty($saldos[$row->account_guid]) ? 0 : $saldos[$row->account_guid] + $row->missingPos + $row->missingNeg, 2, '.', ' ');
 			/** @var table_db_result_account_name_rows $row_html */
 			$row_html = (object) array_map('htmlentities', (array) $row);
 
@@ -74,16 +84,17 @@ HTML_BLOCK;
 					<td><a href="bank2.php?account={$row_html->account}">{$row_html->name}</a></td>
 					<td>{$row_html->edate}</td>
 					<td>{$row_html->fdate}</td>
-					<td>{$row_html->erows}</td>
-					<td>{$row_html->rows}</td>
-					<td>{$row_html->prows} %</td>
+					<td>{$row_html->erowc}</td>
+					<td>{$row_html->rowc}</td>
+					<td>{$row_html->prowc} %</td>
 					<td>{$row_html->pos}</td>
 					<td>{$row_html->neg}</td>
+					<td>{$row_html->saldo}</td>
 				</tr>
 
 HTML_BLOCK;
 
-			$links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities($row->name) . "</a> ({$row->erows} / {$row->rows})";
+			$links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities($row->name) . "</a> ({$row->erowc} / {$row->rowc})";
 		}
 
 		echo <<<HTML_BLOCK
@@ -584,9 +595,9 @@ class table_db_result_account_name_rows
 {
 	public $account;
 	public $name;
-	public $rows;
-	public $erows;
-	public $prows;
+	public $rowc;
+	public $erowc;
+	public $prowc;
 	public $edate;
 	public $fdate;
 }

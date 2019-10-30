@@ -28,10 +28,10 @@ bi.render = function(row) {
 	html += '<label><span>Date:</span><input type="date" name="date" class="input_date" value="' + row.bdate + '" /></label>';
 	html += '<label><span>Amount:</span><input type="number" class="input_amount" name="amount" value="' + Math.abs(row.amount) + '" /></label>';
 	html += '<label><span>From:</span><select name="from" class="input_from">';
-	html += bi.render_account_list(row.amount < 0 ? false : bi.selected_account);
+	html += bi.render_account_list(row.amount > 0 ? false : bi.selected_account);
 	html += '</select></label>';
 	html += '<label><span>To:</span><select name="to" class="input_to">';
-	html += bi.render_account_list(row.amount < 0 ? bi.selected_account : false);
+	html += bi.render_account_list(row.amount > 0 ? bi.selected_account : false);
 	html += '</select></label>';
 	html += '<br />';
 	html += '<label><span>Text:</span><input class="input_text" type="text" name="text" value="' + row.vtext + '" /></label>';
@@ -42,18 +42,9 @@ bi.render = function(row) {
 			html += '<h3>Match sugestions (TR)</h3>';
 			html += '<ul>';
 			for(i in row.matches.tx) {
-				html += '<li>' + i + '</li>';
-/*
-  		$description = htmlentities($match_row->description);
-		$url = "?account={$selected_account}&amp;row={$bt_row->bank_t_row}&amp;guid={$match_row->guid}";
-		$date = substr($match_row->date, 0, 10);
-		$other_account = $match_row->other_account ? ' (' . htmlentities($match_row->other_account) . ')' : '';
-		echo <<<HTML_BLOCK
-		<li><a href="{$url}">{$match_row->value} @ {$date}: {$description}</a>{$other_account}</li>
-
-	HTML_BLOCK;
-
-* */
+				var tx = row.matches.tx[i];
+				var text = tx.date + ', ' + tx.other_account + ', ' + tx.value + ', ' + tx.description;
+				html += '<li onclick="bi.ajax_connect_row(' + row.bank_t_row + ', \'' + i + '\')">' + text + '</li>';
 			}
 			html += '</ul>';
 		}
@@ -103,6 +94,37 @@ bi.ajax_add_row = function(row) {
 	if(!data.from) return false;
 	if(!data.to) return false;
 	if(!data.text) return false;
+
+	li.css('opacity', 0.5);
+
+	$.ajax(
+		{
+			type: 'POST',
+			url: 'bank_api.php',
+			data: data,
+			error: function () {
+				li.css('opacity', 1);
+			},
+			success: function() {
+				li.remove();
+
+				// TODO: handle returned data
+			}
+		}
+	);
+
+	//let data.date = li.
+	console.log(data);
+	return false;
+};
+
+bi.ajax_connect_row = function(row, guid) {
+	let li = $('li#item-' + row);
+	let data = {
+		action: 'connect',
+		row: row,
+		guid: guid
+	};
 
 	li.css('opacity', 0.5);
 

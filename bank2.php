@@ -8,6 +8,7 @@
 
 	$account_code = (int) $_GET['account'];
 
+	require_once(__DIR__ . "/token_auth.php");
 	require_once(__DIR__ . "/bank_funk.php");
 	$bi = new Bank_interface();
 	$accounts = $bi->accounts();
@@ -18,8 +19,9 @@
 		die();
 	}
 
+	ksort($accounts, SORT_STRING);
 	$selected_account_html = htmlentities($accounts[$account_code]);
-	$accounts_json = json_encode($accounts, JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE);
+	$accounts_json = json_encode($accounts, JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE + JSON_FORCE_OBJECT);
 	$rows_json = json_encode($bi->account_cache($account_code), JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE);
 
 	echo <<<HTML_BLOCK

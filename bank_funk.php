@@ -11,11 +11,12 @@
 	 */
 	class Bank_interface
 	{
-		/** @var db */
 		private $db;
-		/** @var GnuCash */
 		private $gc;
 
+		/**
+		 * Bank_interface constructor.
+		 */
 		public function __construct()
 		{
 			$this->db = Auth::new_db();
@@ -170,13 +171,14 @@
 		 */
 		public function accounts()
 		{
-			return $this->db->read("SELECT code, name FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code", "code", "name");
+			return $this->db->read("SELECT code, name FROM `accounts` WHERE LENGTH(code) >= 4 ORDER BY code", "code", "name");
 		}
 
 		/**
 		 * @param int $account_code
 		 *
 		 * @return bank_transactions_cache[]
+		 * @throws Exception
 		 */
 		public function account_cache($account_code)
 		{
@@ -194,7 +196,7 @@ SQL_BLOCK;
 				{
 					$bank_row = $this->get_bank_row($row->bank_t_row);
 					$bank_row->save_cache($this->db);
-					$row = $this->db->get($query . ' AND bank_t_row = ' . $row->bank_t_row);
+					$row = $this->db->object($query . ' AND bank_t_row = ' . $row->bank_t_row);
 				}
 				$list[] = json_decode($row->data);
 			}

@@ -34,7 +34,7 @@
 	{
 		global $bi;
 
-		$account_ids = $bi->db()->read("SELECT code, guid FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code", "code", "guid");
+		$account_ids = $bi->db()->read("SELECT code, guid FROM `accounts` WHERE LENGTH(code) >= 4 ORDER BY code", "code", "guid");
 		switch($action)
 		{
 			case 'add':

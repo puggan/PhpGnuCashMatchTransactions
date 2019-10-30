@@ -5,6 +5,7 @@
 
 	$query = "SELECT code, name FROM accounts WHERE code BETWEEN 40 AND 99";
 	$group_names = $db->read($query, 'code', 'name');
+	$from = date("Y-m-d", strtotime($_GET['from'] ?? '' ?: '2017-01-01'));
 
 	$query = <<<SQL_BLOCK
 SELECT
@@ -13,17 +14,20 @@ SELECT
 FROM splits
    INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
    INNER JOIN accounts ON (accounts.guid = splits.account_guid)
-WHERE accounts.code BETWEEN 4000 AND 4998
+WHERE transactions.post_date >= '{$from}'
+AND accounts.code BETWEEN 4000 AND 4998
 GROUP BY 1
 SQL_BLOCK;
 	$group_values = $db->read($query, 'code_group', 'v');
+
+	$sum = array_sum($group_values);
 
 	$trs = array();
 	$pie = array();
 	foreach($group_values as $group => $value)
 	{
 		$value_text = number_format($value, 2, '.', ' ') . ' kr';
-		$data = array('short' => $group, 'long' => $group_names[$group] ?? 'Group ' . $group, 'value_text' => $value_text);
+		$data = array('short' => $group, 'long' => $group_names[$group] ?? 'Group ' . $group, 'procent' => round(100*$value/$sum) . ' %', 'value_text' => $value_text);
 		$trs[] = implode("</td><td>", array_map('htmlentities', $data));
 		$data['value'] = $value;
 		$pie[] = $data;
@@ -123,7 +127,7 @@ SQL_BLOCK;
 		</style>
 	</head>
 	<body>
-		<h1>Cost ditrubition 4x</h1>
+		<h1>Cost ditrubition 4x ({$from} -> now)</h1>
 		<div id="pie" style="position: relative;">
 			<svg width="960" height="500" ></svg>
 			<div class="tooltip">
@@ -136,6 +140,7 @@ SQL_BLOCK;
 				<tr>
 					<th>Group</th>
 					<th>Group Name</th>
+					<th>Procent</th>
 					<th>Sum</th>
 				</tr>
 			</thead>

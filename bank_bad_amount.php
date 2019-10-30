@@ -48,7 +48,7 @@ SQL_BLOCK;
 					<th>First Connected</th>
 					<th>Last Connected</th>
 					<th>Empty</th>
-					<th>Missing</th>
+					<th>Bad amount</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -65,17 +65,17 @@ HTML_BLOCK;
 			$account_guid_sql = $db->quote($row->account_guid);
 			$f_date_sql = $db->quote($row->f_date);
 			$t_date_sql = $db->quote($row->t_date);
-			$missing_query = <<<SQL_BLOCK
+			$bad_amount_query = <<<SQL_BLOCK
 SELECT COUNT(*) AS c
-FROM splits 
+FROM splits
 	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
-	LEFT JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
-WHERE bank_transactions.bank_tid IS NULL
+	INNER JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
+WHERE bank_transactions.amount * splits.value_denom <> splits.value_num
 	AND splits.account_guid = {$account_guid_sql}
 	AND transactions.post_date BETWEEN {$f_date_sql} AND {$t_date_sql}
 SQL_BLOCK;
 
-			$missing = (int) $db->get($missing_query);
+			$bad_amount = (int) $db->get($bad_amount_query);
 
 			$row_class = ($odd = !$odd) ? 'odd' : 'even';
 			echo <<<HTML_BLOCK
@@ -84,12 +84,12 @@ SQL_BLOCK;
 					<td>{$row_html->f_date}</td>
 					<td>{$row_html->t_date}</td>
 					<td>{$row_html->erows}</td>
-					<td>{$missing}</td>
+					<td>{$bad_amount}</td>
 				</tr>
 
 HTML_BLOCK;
 
-			$links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities($row->name) . "</a> ({$missing})";
+			$links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities($row->name) . "</a> ({$bad_amount})";
 		}
 
 		echo <<<HTML_BLOCK
@@ -231,14 +231,25 @@ SQL_BLOCK;
 	/** @var table_db_result_account_name_rows $account_row_sql */
 	$account_row_sql = (object) array_map([$db, 'quote'], $account_row);
 
-	$missing_query = <<<SQL_BLOCK
-SELECT *
-FROM splits 
+	$bad_amount_query = <<<SQL_BLOCK
+SELECT
+	'bt',
+	bank_transactions.*,
+	't',
+	transactions.*,
+	's',
+	splits.*,
+	'a',
+	GROUP_CONCAT(al.code) AS account_codes,
+	GROUP_CONCAT(al.name) AS account_names
+FROM splits
 	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
-	LEFT JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
-WHERE bank_transactions.bank_tid IS NULL
+	INNER JOIN bank_transactions ON (bank_transactions.bank_tid = splits.guid)
+	INNER JOIN splits AS s2 ON (s2.tx_guid = transactions.guid AND s2.guid <> splits.guid)
+	INNER JOIN accounts AS al ON (al.guid = s2.account_guid)
+WHERE bank_transactions.amount * splits.value_denom <> splits.value_num
 	AND splits.account_guid = {$account_row_sql->account_guid}
-	AND transactions.post_date BETWEEN {$account_row_sql->f_date} AND {$account_row_sql->t_date}
+GROUP BY bank_transactions.bank_tid
 SQL_BLOCK;
 
 	echo <<<HTML_BLOCK
@@ -287,7 +298,7 @@ HTML_BLOCK;
 	$odd = FALSE;
 
 	/** @var table_db_result_missing_splits $bt_row */
-	foreach($db->objects($missing_query) as $bt_row)
+	foreach($db->objects($bad_amount_query) as $bt_row)
 	{
 		echo "<pre>";
 		print_r($bt_row);
