@@ -1,0 +1,20 @@
+{
+  "name": "puggan/php_gnu_cash_match_transactions",
+  "description": "Tool for GnuCash databases, to import and match up transactions from banks export-files",
+  "type": "project",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Thorbjörn 'Puggan' Sundragon",
+      "email": "puggan@sundragon.se"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Puggan\\GnuCashMatcher\\": "src/"
+    }
+  },
+  "require": {
+    "nyholm/noop": "^1.0"
+  }
+}
