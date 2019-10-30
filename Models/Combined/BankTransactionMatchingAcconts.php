@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../Interfaces/Account.php';
+require_once __DIR__ . '/../Interfaces/BankTransaction.php';
+
 namespace Models\Combined;
 
 use Models\Interfaces\Account;

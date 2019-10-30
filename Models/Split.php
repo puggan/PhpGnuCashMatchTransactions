@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Interfaces/Split.php';
+
 namespace Models;
 /**
  * Class Split

@@ -10,6 +10,7 @@ use Models\BankTransaction;
 
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/GnuCash.php';
+require_once __DIR__ . '/Models/Account.php';
 require_once __DIR__ . '/Models/BankTransaction.php';
 
 /**

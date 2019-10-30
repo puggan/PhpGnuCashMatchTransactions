@@ -4,6 +4,7 @@ use Models\Account;
 
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
+require_once __DIR__ . '/Models/Account.php';
 
 if (empty($_GET['account'])) {
     header('Location: 	accounts.php');
