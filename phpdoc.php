@@ -1,24 +1,11 @@
 <?php
+declare(strict_types=1);
+/** @noinspection PhpPropertyNamingConventionInspection */
+/** @noinspection PhpClassNamingConventionInspection */
+
+/** @noinspection PhpMultipleClassesDeclarationsInOneFile */
 
 namespace PhpDoc;
-
-/**
- * Class accounts
- * @property string guid
- * @property string name
- * @property string account_type
- * @property string commodity_guid
- * @property int commodity_scu
- * @property int non_std_scu
- * @property string praent_guid
- * @property string code
- * @property string description
- * @property int hidden
- * @property int placeholder
- */
-class accounts
-{
-}
 
 /**
  * Class saldo_sum
@@ -56,7 +43,7 @@ class tr_prediction
  * @property string account
  * @property string bank_tid
  * @property int bank_t_row
- * @property table_db_result_row_value_date_description_guid[][]|table_db_result_row_text_match[][] $matches
+ * @property \Models\table_db_result_row_value_date_description_guid[][]|\Models\Combined\table_db_result_row_text_match[][] $matches
  * @property string md5
  */
 class bank_transactions_cache
@@ -137,32 +124,5 @@ class table_db_result_missing_splits
  * @property string matchtext
  */
 class table_db_result_row_odd_match
-{
-}
-
-/**
- * Class table_db_result_row_text_match
- * @property string code
- * @property string name
- * @property string connections
- * @property int|float amount_from
- * @property int|float amount_to
- * @property string date_from
- * @property string date_to
- */
-class table_db_result_row_text_match
-{
-}
-
-/**
- * Class table_db_result_row_value_date_description_guid
- * @property string row
- * @property string value
- * @property string date
- * @property string description
- * @property string guid
- * @property string other_account
- */
-class table_db_result_row_value_date_description_guid
 {
 }

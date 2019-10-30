@@ -1,6 +1,8 @@
 <?php
+declare(strict_types=1);
 
-use Models\Transaction;
+use Models\Account;
+use Models\BankTransaction;
 
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/GnuCash.php';
@@ -29,7 +31,7 @@ class Bank_interface
     /**
      * @return db
      */
-    public function db()
+    public function db(): \db
     {
         return $this->db;
     }
@@ -60,13 +62,15 @@ class Bank_interface
     /**
      * @param int $row_nr
      *
-     * @return Transaction
+     * @return BankTransaction
      */
-    public function get_bank_row($row_nr)
+    public function get_bank_row($row_nr): BankTransaction
     {
         $row_nr = (int) $row_nr;
         $query = "SELECT * FROM bank_transactions WHERE bank_t_row = {$row_nr}";
-        return $this->db->object($query, null, Transaction::class);
+        /** @var BankTransaction $transaction */
+        $transaction = $this->db->object($query, null, BankTransaction::class);
+        return $transaction;
     }
 
     /**
@@ -155,13 +159,9 @@ class Bank_interface
     /**
      * @return string[] code -> name
      */
-    public function accounts()
+    public function accounts(): array
     {
-        return $this->db->read(
-            "SELECT code, name FROM `accounts` WHERE LENGTH(code) >= 4 ORDER BY code",
-            "code",
-            "name"
-        );
+        return Account::codeNames($this->db);
     }
 
     /**

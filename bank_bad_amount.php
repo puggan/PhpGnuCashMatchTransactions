@@ -434,8 +434,8 @@ SQL_BLOCK;
 
     $count = 0;
 
-    /** @var \PhpDoc\table_db_result_row_text_match $match_row */
-    foreach ($db->objects($query) as $match_row) {
+    /** @var \Models\Combined\BankTransactionMatchingAcconts $match_row */
+    foreach ($database->objects($query) as $match_row) {
         if (!$count++) {
             echo <<<HTML_BLOCK
 						<h3>Match sugestions (Text)</h3>

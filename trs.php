@@ -1,5 +1,7 @@
 <?php
 
+use Models\Account;
+
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
 
@@ -11,8 +13,7 @@ if (empty($_GET['account'])) {
 $code = (int) $_GET['account'];
 $db = Auth::new_db();
 
-/** @var \PhpDoc\accounts[] $accounts */
-$accounts = $db->objects('SELECT * FROM accounts', 'code');
+$accounts = Account::all($db, 'code');
 
 if (empty($accounts[$code])) {
     header('Location: 	accounts.php');

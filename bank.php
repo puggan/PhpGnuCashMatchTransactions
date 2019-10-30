@@ -1,6 +1,6 @@
 <?php
 
-use Models\Transaction;
+use Models\BankTransaction;
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -287,7 +287,7 @@ $current_account_option = "<option value=\"{$selected_account}\">{$account_names
 $odd = false;
 $row_count = 0;
 
-/** @var Transaction $bt_row */
+/** @var BankTransaction $bt_row */
 foreach ($db->objects($query) as $bt_row) {
     $base_url = "?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}";
     $row_count++;

@@ -1,6 +1,7 @@
 <?php
+declare(strict_types=1);
 
-use Models\Transaction;
+use Models\BankTransaction;
 
 require_once __DIR__ . '/bank_funk.php';
 require_once __DIR__ . '/Models/Transaction.php';
@@ -20,9 +21,9 @@ $db->write(
 $query = "SELECT * FROM bank_transactions WHERE bank_tid IS NULL AND bdate >= '2016-09-01'";
 /**
  * @var int $row_nr
- * @var Transaction $bank_row
+ * @var BankTransaction $bank_row
  */
-foreach ($db->g_objects($query, 'bank_t_row', Transaction::class) as $row_nr => $bank_row) {
+foreach ($db->g_objects($query, 'bank_t_row', BankTransaction::class) as $row_nr => $bank_row) {
     $bank_row->save_cache($db);
 }
 
