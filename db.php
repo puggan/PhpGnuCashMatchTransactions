@@ -1,4 +1,9 @@
-<?php
+<?php /** @noinspection PhpUnused */
+/** @noinspection PhpUnused */
+/** @noinspection PhpVariableNamingConventionInspection */
+/** @noinspection PhpMethodNamingConventionInspection */
+/** @noinspection PhpClassNamingConventionInspection */
+declare(strict_types=1);
 
 /**
  * Class db
@@ -18,20 +23,18 @@ class db
      * @param string|NULL $host
      * @param int|NULL $port
      */
-    function __construct(string $database, string $username, string $password, string $host = null, int $port = null)
+    public function __construct(string $database, string $username, string $password, string $host = null, int $port = null)
     {
         if (!$host) {
             $this->link = new mysqli('localhost', $username, $password, $database);
+        } elseif (!$port) {
+            $this->link = new mysqli($host, $username, $password, $database);
         } else {
-            if (!$port) {
-                $this->link = new mysqli($host, $username, $password, $database);
-            } else {
-                $this->link = new mysqli($host, $username, $password, $database, $port);
-            }
+            $this->link = new mysqli($host, $username, $password, $database, $port);
         }
 
         if ($this->link) {
-            $this->link->set_charset("utf8");
+            $this->link->set_charset('utf8');
         } else {
             $this->last_error = 'No database connection';
             trigger_error('Database fel: ' . $this->last_error);
@@ -41,7 +44,7 @@ class db
     /**
      * db destructor
      */
-    function __destruct()
+    public function __destruct()
     {
         unset($this->link);
     }
@@ -51,9 +54,9 @@ class db
      *
      * @return mysqli_result|false
      */
-    function query(string $query)
+    public function query(string $query)
     {
-        if (!$this->link or !$this->link->ping()) {
+        if (!$this->link || !$this->link->ping()) {
             $this->link = null;
             $this->last_error = 'No database connection';
             trigger_error('Database fel: ' . $this->last_error);
@@ -71,7 +74,7 @@ class db
      *
      * @return bool
      */
-    function write(string $query)
+    public function write(string $query): bool
     {
         $result = $this->query($query);
 
@@ -83,7 +86,7 @@ class db
             return true;
         }
 
-        if (is_a($result, "mysqli_result")) {
+        if ($result instanceof \mysqli_result) {
             $result->free();
         }
 
@@ -95,7 +98,7 @@ class db
      *
      * @return int|string|false
      */
-    function insert(string $query)
+    public function insert(string $query)
     {
         $result = $this->write($query);
 
@@ -111,7 +114,7 @@ class db
      *
      * @return int|false
      */
-    function update(string $query)
+    public function update(string $query)
     {
         $result = $this->write($query);
 
@@ -129,27 +132,23 @@ class db
      *
      * @return false|string[][]|int[][]|string[]|int[]
      */
-    function read(string $query, string $index = null, string $column = null)
+    public function read(string $query, string $index = null, string $column = null)
     {
         $resource = $this->query($query);
 
-        if (!is_a($resource, "mysqli_result")) {
+        if (!$resource instanceof \mysqli_result) {
             return false;
         }
 
         $result = $resource->fetch_all(MYSQLI_ASSOC);
         $resource->free();
 
-        if ($index and $column) {
+        if ($index && $column) {
             $result = array_column($result, $column, $index);
-        } else {
-            if ($index) {
-                $result = array_column($result, null, $index);
-            } else {
-                if ($column) {
-                    $result = array_column($result, $column);
-                }
-            }
+        } elseif ($index) {
+            $result = array_column($result, null, $index);
+        } elseif ($column) {
+            $result = array_column($result, $column);
         }
 
         return $result;
@@ -163,27 +162,23 @@ class db
      * @return Generator|string[][]|int[][]|string[]|int[]
      * @throws Exception
      */
-    function g_read(string $query, string $index = null, string $column = null)
+    public function g_read(string $query, string $index = null, string $column = null)
     {
         $resource = $this->query($query);
 
-        if (!is_a($resource, "mysqli_result")) {
-            throw new \Exception("Query Failed");
+        if (!$resource instanceof \mysqli_result) {
+            throw new \RuntimeException('Query Failed');
         }
 
         while (null !== ($row = $resource->fetch_array(MYSQLI_ASSOC))) {
-            if ($index and $column) {
+            if ($index && $column) {
                 yield $row[$index] => $row[$column];
+            } elseif ($index) {
+                yield $row[$index] => $row;
+            } elseif ($column) {
+                yield $row[$column];
             } else {
-                if ($index) {
-                    yield $row[$index] => $row;
-                } else {
-                    if ($column) {
-                        yield $row[$column];
-                    } else {
-                        yield $row;
-                    }
-                }
+                yield $row;
             }
         }
 
@@ -197,17 +192,18 @@ class db
      *
      * @return false|stdClass[]
      */
-    function objects(string $query, string $index = null, string $class_name = null)
+    public function objects(string $query, string $index = null, string $class_name = null)
     {
         $result = [];
         $resource = $this->query($query);
 
-        if (!is_a($resource, "mysqli_result")) {
+        if (!$resource instanceof \mysqli_result) {
             return false;
         }
 
         while (null !== ($row = $resource->fetch_object($class_name ?: 'stdClass'))) {
             if ($index) {
+                /** @noinspection PhpVariableVariableInspection */
                 $result[$row->$index] = $row;
             } else {
                 $result[] = $row;
@@ -226,13 +222,14 @@ class db
      *
      * @return Generator|stdClass[]
      * @throws Exception
+     * @noinspection PhpVariableVariableInspection
      */
-    function g_objects(string $query, string $index = null, string $class_name = null)
+    public function g_objects(string $query, string $index = null, string $class_name = null)
     {
         $resource = $this->query($query);
 
-        if (!is_a($resource, "mysqli_result")) {
-            throw new \Exception("Query Failed");
+        if (!$resource instanceof \mysqli_result) {
+            throw new \RuntimeException('Query Failed');
         }
 
         while (null !== ($row = $resource->fetch_object($class_name ?: 'stdClass'))) {
@@ -252,11 +249,11 @@ class db
      *
      * @return false|string[]|int[]|string|int
      */
-    function get(string $query, $default = false)
+    public function get(string $query, $default = false)
     {
         $resource = $this->query($query);
 
-        if (!is_a($resource, "mysqli_result")) {
+        if (!$resource instanceof \mysqli_result) {
             return false;
         }
 
@@ -268,7 +265,7 @@ class db
             return $default;
         }
 
-        if (is_array($row) and count($row) == 1) {
+        if (is_array($row) && count($row) === 1) {
             return array_values($row)[0];
         }
 
@@ -282,11 +279,11 @@ class db
      *
      * @return bool|stdClass
      */
-    function object(string $query, $default = false, string $class_name = null)
+    public function object(string $query, $default = false, string $class_name = null)
     {
         $resource = $this->query($query);
 
-        if (!is_a($resource, "mysqli_result")) {
+        if (!$resource instanceof \mysqli_result) {
             return false;
         }
 
@@ -298,7 +295,7 @@ class db
             return $default;
         }
 
-        if (is_array($row) and count($row) == 1) {
+        if (is_array($row) && count($row) === 1) {
             return array_values($row)[0];
         }
 
@@ -306,23 +303,21 @@ class db
     }
 
     /**
-     * @param $resource
+     * @param mysqli_result $resource
      *
-     * @return mixed[]
+     * @return mixed[]|null
      */
-    function fetch($resource)
+    public static function fetch($resource): ?array
     {
         return $resource->fetch_array(MYSQLI_ASSOC);
     }
 
     /**
-     * @param $resource
-     *
-     * @return mixed
+     * @param mysqli_result $resource
      */
-    function close($resource)
+    public static function close($resource): void
     {
-        return $resource->free();
+        $resource->free();
     }
 
     /**
@@ -330,7 +325,7 @@ class db
      *
      * @return string
      */
-    function quote(string $string)
+    public function quote(string $string): string
     {
         return "'" . $this->link->real_escape_string($string) . "'";
     }
