@@ -1,6 +1,6 @@
 <?php
 
-	$query = <<<SQL_BLOCK
+$query = <<<SQL_BLOCK
 SELECT
 	accounts.code,
 	if(SUBSTRING(accounts.name, 1, 7) = CONCAT(accounts.code, ' - '), SUBSTRING(accounts.name, 8), accounts.name) as name,
@@ -12,30 +12,34 @@ FROM splits
 GROUP BY accounts.code
 SQL_BLOCK;
 
-	require_once __DIR__ . '/auth.php';
-	require_once __DIR__ . '/token_auth.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/token_auth.php';
 
-	$db = Auth::new_db();
-	$sum = 0;
-	$trs = array();
+$db = Auth::new_db();
+$sum = 0;
+$trs = [];
 
-	/** @var saldo_sum $o */
-	foreach($db->g_objects($query, 'code') as $o)
-	{
-		$trs[] = implode(
-			PHP_EOL,
-			[
-				'			<tr>',
-				'				<td>' . ($code = htmlentities($o->code)) . '</td>',
-				'				<td>' . htmlentities($o->name) . '</td>',
-				'				<td>' . number_format($o->v, 2, '.', ' ') . '</td>',
-				'				<td><a href="trs.php?account=' . $code . '">' . number_format($o->c, 0, '.', ' ') . '</a></td>',
-				'			</tr>'
-			]
-		);
-	}
+/** @var saldo_sum $o */
+foreach ($db->g_objects($query, 'code') as $o) {
+    $trs[] = implode(
+        PHP_EOL,
+        [
+            '			<tr>',
+            '				<td>' . ($code = htmlentities($o->code)) . '</td>',
+            '				<td>' . htmlentities($o->name) . '</td>',
+            '				<td>' . number_format($o->v, 2, '.', ' ') . '</td>',
+            '				<td><a href="trs.php?account=' . $code . '">' . number_format(
+                $o->c,
+                0,
+                '.',
+                ' '
+            ) . '</a></td>',
+            '			</tr>'
+        ]
+    );
+}
 
-	echo <<<HTML_BLOCK
+echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Accounts</title>
@@ -58,8 +62,8 @@ SQL_BLOCK;
 			<tbody>
 
 HTML_BLOCK;
-	echo implode(PHP_EOL, $trs);
-	echo <<<HTML_BLOCK
+echo implode(PHP_EOL, $trs);
+echo <<<HTML_BLOCK
 			</tbody>
 		</table>
 	</body>
@@ -67,12 +71,13 @@ HTML_BLOCK;
 
 HTML_BLOCK;
 
-	/**
-	 * Class saldo_sum
-	 * @property string code
-	 * @property string name
-	 * @property float v
-	 * @property int c
-	 */
-	class saldo_sum
-	{}
+/**
+ * Class saldo_sum
+ * @property string code
+ * @property string name
+ * @property float v
+ * @property int c
+ */
+class saldo_sum
+{
+}

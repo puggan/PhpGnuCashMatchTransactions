@@ -3,14 +3,13 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-	require_once(__DIR__ . "/auth.php");
-	require_once(__DIR__ . "/gnucach.php");
+require_once(__DIR__ . "/auth.php");
+require_once(__DIR__ . "/gnucach.php");
 
-	$db = Auth::new_db();
+$db = Auth::new_db();
 
-	if(empty($_GET['account']))
-	{
-		$query = <<<SQL_BLOCK
+if (empty($_GET['account'])) {
+    $query = <<<SQL_BLOCK
 SELECT
 	bank_transactions.account,
 	accounts.name,
@@ -27,14 +26,14 @@ WHERE bdate >= '2016-09-01'
 GROUP BY account
 SQL_BLOCK;
 
-		$saldo_query = <<<SQL_BLOCK
+    $saldo_query = <<<SQL_BLOCK
 SELECT account_guid, SUM(value_num/value_denom) AS s
 FROM splits
 GROUP BY account_guid
 SQL_BLOCK;
-		$saldos = $db->read($saldo_query, 'account_guid', 's');
+    $saldos = $db->read($saldo_query, 'account_guid', 's');
 
-		echo <<<HTML_BLOCK
+    echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Select bank account</title>
@@ -66,20 +65,23 @@ SQL_BLOCK;
 
 HTML_BLOCK;
 
-		$odd = FALSE;
-		/** @var table_db_result_account_name_rows $row */
-		foreach($db->g_objects($query) as $row)
-		{
-			$row->prowc = (int) (100 * $row->erowc / $row->rowc);
-			$row->pos = (($row->missingPos > 0) ? number_format($row->missingPos, 2, '.', ' ') : '');
-			$row->neg = (($row->missingNeg < 0) ? number_format($row->missingNeg, 2, '.', ' ') : '');
-			$row->saldo = number_format(empty($saldos[$row->account_guid]) ? 0 : $saldos[$row->account_guid] + $row->missingPos + $row->missingNeg, 2, '.', ' ');
-			/** @var table_db_result_account_name_rows $row_html */
-			$row_html = (object) array_map('htmlentities', (array) $row);
+    $odd = false;
+    /** @var table_db_result_account_name_rows $row */
+    foreach ($db->g_objects($query) as $row) {
+        $row->prowc = (int) (100 * $row->erowc / $row->rowc);
+        $row->pos = (($row->missingPos > 0) ? number_format($row->missingPos, 2, '.', ' ') : '');
+        $row->neg = (($row->missingNeg < 0) ? number_format($row->missingNeg, 2, '.', ' ') : '');
+        $row->saldo = number_format(
+            empty($saldos[$row->account_guid]) ? 0 : $saldos[$row->account_guid] + $row->missingPos + $row->missingNeg,
+            2,
+            '.',
+            ' '
+        );
+        /** @var table_db_result_account_name_rows $row_html */
+        $row_html = (object) array_map('htmlentities', (array) $row);
 
-
-			$row_class = ($odd = !$odd) ? 'odd' : 'even';
-			echo <<<HTML_BLOCK
+        $row_class = ($odd = !$odd) ? 'odd' : 'even';
+        echo <<<HTML_BLOCK
 				<tr class="{$row_class}">
 					<td><a href="bank2.php?account={$row_html->account}">{$row_html->name}</a></td>
 					<td>{$row_html->edate}</td>
@@ -94,10 +96,12 @@ HTML_BLOCK;
 
 HTML_BLOCK;
 
-			$links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities($row->name) . "</a> ({$row->erowc} / {$row->rowc})";
-		}
+        $links[$row->account] = "<a href=\"?account={$row->account}\">" . htmlentities(
+                $row->name
+            ) . "</a> ({$row->erowc} / {$row->rowc})";
+    }
 
-		echo <<<HTML_BLOCK
+    echo <<<HTML_BLOCK
 			</tbody>
 		</table>
 		<p><a href="./bank_import.php">Import from bank</a></p>
@@ -107,141 +111,123 @@ HTML_BLOCK;
 	</body>
 </html>
 HTML_BLOCK;
-		die();
-	}
+    die();
+}
 
-	$account_ids = $db->read("SELECT code, guid FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code", "code", "guid");
-	$account_names = $db->read("SELECT code, name FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code", "code", "name");
-	$account_names_html = array_map('htmlentities', $account_names);
-	$selected_account = (int) $_GET['account'];
+$account_ids = $db->read("SELECT code, guid FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code", "code", "guid");
+$account_names = $db->read("SELECT code, name FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code", "code", "name");
+$account_names_html = array_map('htmlentities', $account_names);
+$selected_account = (int) $_GET['account'];
 
-	$edit_row = $_GET['row'] ?? 0;
-	if($edit_row)
-	{
-		$new_guid = $_GET['guid'] ?? '';
-		if(!$new_guid)
-		{
-			$date = $_POST['date'] ?? NULL;
-			$amount = $_POST['amount'] ?? NULL;
-			$from = $_POST['from'] ?? NULL;
-			$to = $_POST['to'] ?? NULL;
-			$text = $_POST['text'] ?? NULL;
-			$amount = strtr($amount, array(',' => '.', ' ' => ''));
+$edit_row = $_GET['row'] ?? 0;
+if ($edit_row) {
+    $new_guid = $_GET['guid'] ?? '';
+    if (!$new_guid) {
+        $date = $_POST['date'] ?? null;
+        $amount = $_POST['amount'] ?? null;
+        $from = $_POST['from'] ?? null;
+        $to = $_POST['to'] ?? null;
+        $text = $_POST['text'] ?? null;
+        $amount = strtr($amount, [',' => '.', ' ' => '']);
 
-			if($date)
-			{
-				$date = date("Y-m-d", strtotime($date));
-			}
+        if ($date) {
+            $date = date("Y-m-d", strtotime($date));
+        }
 
-			if($from)
-			{
-				$from = $account_ids[$from] ?? NULL;
-			}
+        if ($from) {
+            $from = $account_ids[$from] ?? null;
+        }
 
-			if($to)
-			{
-				$to = $account_ids[$to] ?? NULL;
-			}
+        if ($to) {
+            $to = $account_ids[$to] ?? null;
+        }
 
-			if($date AND $amount AND $from AND $to AND $text)
-			{
-				$GnuCash = Auth::new_gnucash();
+        if ($date and $amount and $from and $to and $text) {
+            $GnuCash = Auth::new_gnucash();
 
-				if($GnuCash->GUIDExists($from) AND $GnuCash->GUIDExists($to))
-				{
-					$error = $GnuCash->createTransaction($to, $from, $amount, $text, $date, '');
+            if ($GnuCash->GUIDExists($from) and $GnuCash->GUIDExists($to)) {
+                $error = $GnuCash->createTransaction($to, $from, $amount, $text, $date, '');
 
-					if($GnuCash->lastTxGUID)
-					{
-						$tx_guid_sql = $db->quote($GnuCash->lastTxGUID);
-						$account_guid_sql = $db->quote($account_ids[$selected_account]);
-						$query = <<<SQL_BLOCK
+                if ($GnuCash->lastTxGUID) {
+                    $tx_guid_sql = $db->quote($GnuCash->lastTxGUID);
+                    $account_guid_sql = $db->quote($account_ids[$selected_account]);
+                    $query = <<<SQL_BLOCK
 SELECT guid
 FROM splits
 WHERE tx_guid = {$tx_guid_sql}
 	AND account_guid = {$account_guid_sql}
 SQL_BLOCK;
-						$matching_splits = $db->read($query, NULL, 'guid');
-						if(count($matching_splits))
-						{
-							$new_guid = $matching_splits[0];
-						}
-
-					}
-else echo $error;
-				}
-			}
-		}
-		if($new_guid)
-		{
-			$new_guid_sql = $db->quote($new_guid);
-			$query = <<<SQL_BLOCK
+                    $matching_splits = $db->read($query, null, 'guid');
+                    if (count($matching_splits)) {
+                        $new_guid = $matching_splits[0];
+                    }
+                } else {
+                    echo $error;
+                }
+            }
+        }
+    }
+    if ($new_guid) {
+        $new_guid_sql = $db->quote($new_guid);
+        $query = <<<SQL_BLOCK
 UPDATE bank_transactions
 SET bank_tid = {$new_guid_sql}
 WHERE bank_tid IS NULL
 	AND bank_t_row = {$edit_row}
 SQL_BLOCK;
-			$db->write($query);
-		}
-	}
+        $db->write($query);
+    }
+}
 
-	$options = array("<option value=\"\">-- Select Account --</option>");
-	foreach($account_names as $account_code => $account_name)
-	{
-		$account_name_html = htmlentities($account_name);
-		$options[] = "<option value=\"{$account_code}\">{$account_name_html}</option>";
-	}
-	$options = implode(PHP_EOL, $options);
+$options = ["<option value=\"\">-- Select Account --</option>"];
+foreach ($account_names as $account_code => $account_name) {
+    $account_name_html = htmlentities($account_name);
+    $options[] = "<option value=\"{$account_code}\">{$account_name_html}</option>";
+}
+$options = implode(PHP_EOL, $options);
 
-	$skip_count = 0;
-	$order_by = "bdate DESC";
+$skip_count = 0;
+$order_by = "bdate DESC";
 
-	if(isset($_GET['skip']))
-	{
-		$skip_count = (int) $_GET['skip'];
-		if(empty($_GET['limit']))
-		{
-			$limit_count = 20;
-		}
-		else
-		{
-			$limit_count = (int) $_GET['limit'];
-		}
-		$limit = "{$limit_count} OFFSET {$skip_count}";
-		$skip_url_html = "&amp;limit={$limit_count}&amp;skip={$skip_count}";
-		$filter = '';
-	}
-	else if(isset($_GET['q']))
-	{
-		$filter = 'AND bank_transactions.vtext LIKE ' . $db->quote('%' . $_GET['q'] . '%');
-		$limit = 50000;
-		$skip_url_html = '&amp;q=' . htmlentities(urlencode($_GET['q']));
-	}
-	else if(isset($_GET['a']))
-	{
-		$amount = (int) $_GET['a'];
-		$filter = 'AND ((bank_transactions.amount BETWEEN ' . ($amount - 5) . ' AND ' . ($amount + 5) . ') OR (bank_transactions.amount BETWEEN ' . (0 - $amount - 5) . ' AND ' . (5 - $amount) . '))';
-		$limit = 50000;
-		$skip_url_html = '&amp;a=' . $amount;
-	}
-	else
-	{
-		$limit = 500;
-		$skip_url_html = '';
-		$filter = '';
-	}
+if (isset($_GET['skip'])) {
+    $skip_count = (int) $_GET['skip'];
+    if (empty($_GET['limit'])) {
+        $limit_count = 20;
+    } else {
+        $limit_count = (int) $_GET['limit'];
+    }
+    $limit = "{$limit_count} OFFSET {$skip_count}";
+    $skip_url_html = "&amp;limit={$limit_count}&amp;skip={$skip_count}";
+    $filter = '';
+} else {
+    if (isset($_GET['q'])) {
+        $filter = 'AND bank_transactions.vtext LIKE ' . $db->quote('%' . $_GET['q'] . '%');
+        $limit = 50000;
+        $skip_url_html = '&amp;q=' . htmlentities(urlencode($_GET['q']));
+    } else {
+        if (isset($_GET['a'])) {
+            $amount = (int) $_GET['a'];
+            $filter = 'AND ((bank_transactions.amount BETWEEN ' . ($amount - 5) . ' AND ' . ($amount + 5) . ') OR (bank_transactions.amount BETWEEN ' . (0 - $amount - 5) . ' AND ' . (5 - $amount) . '))';
+            $limit = 50000;
+            $skip_url_html = '&amp;a=' . $amount;
+        } else {
+            $limit = 500;
+            $skip_url_html = '';
+            $filter = '';
+        }
+    }
+}
 
-	if(isset($_GET['old'])) {
-		$order_by = "bdate";
-		$skip_url_html .= '&amp;old';
-	}
+if (isset($_GET['old'])) {
+    $order_by = "bdate";
+    $skip_url_html .= '&amp;old';
+}
 
-	if(!isset($limit_count))
-	{
-		$limit_count = $limit;
-	}
+if (!isset($limit_count)) {
+    $limit_count = $limit;
+}
 
-	$query = <<<SQL_BLOCK
+$query = <<<SQL_BLOCK
 SELECT *
 FROM bank_transactions
 WHERE bank_tid IS NULL
@@ -252,7 +238,7 @@ ORDER BY {$order_by}
 LIMIT {$limit}
 SQL_BLOCK;
 
-	echo <<<HTML_BLOCK
+echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Unmatched transactions of account: {$selected_account}</title>
@@ -293,44 +279,37 @@ SQL_BLOCK;
 
 HTML_BLOCK;
 
-	$current_account_option = "<option value=\"{$selected_account}\">{$account_names_html[$selected_account]}</option>";
+$current_account_option = "<option value=\"{$selected_account}\">{$account_names_html[$selected_account]}</option>";
 
-	$odd = FALSE;
-	$row_count = 0;
+$odd = false;
+$row_count = 0;
 
-	/** @var table_bank_transactions $bt_row */
-	foreach($db->objects($query) as $bt_row)
-	{
-		$base_url = "?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}";
-		$row_count++;
+/** @var table_bank_transactions $bt_row */
+foreach ($db->objects($query) as $bt_row) {
+    $base_url = "?account={$selected_account}{$skip_url_html}&amp;row={$bt_row->bank_t_row}";
+    $row_count++;
 
-		if($bt_row->amount > 0)
-		{
-			$from_option = $options;
-			$to_option = $current_account_option;
-			$amount = $bt_row->amount;
-		}
-		else
-		{
-			$from_option = $current_account_option;
-			$to_option = $options;
-			$amount = -$bt_row->amount;
-		}
+    if ($bt_row->amount > 0) {
+        $from_option = $options;
+        $to_option = $current_account_option;
+        $amount = $bt_row->amount;
+    } else {
+        $from_option = $current_account_option;
+        $to_option = $options;
+        $amount = -$bt_row->amount;
+    }
 
-		$text = htmlentities($bt_row->vtext);
-		$class = (($odd = !$odd) ? 'odd' : 'even') . ' ' . ($bt_row->amount > 0 ? 'inc' : 'dec');
+    $text = htmlentities($bt_row->vtext);
+    $class = (($odd = !$odd) ? 'odd' : 'even') . ' ' . ($bt_row->amount > 0 ? 'inc' : 'dec');
 
-		if(preg_match("#/([0-9][0-9]-[0-9][0-9]-[0-9][0-9])$#", $text, $m))
-		{
-			$text = trim(substr($text, 0, -9));
-			$date = 20 . $m[1];
-		}
-		else
-		{
-			$date = $bt_row->bdate;
-		}
+    if (preg_match("#/([0-9][0-9]-[0-9][0-9]-[0-9][0-9])$#", $text, $m)) {
+        $text = trim(substr($text, 0, -9));
+        $date = 20 . $m[1];
+    } else {
+        $date = $bt_row->bdate;
+    }
 
-		echo <<<HTML_BLOCK
+    echo <<<HTML_BLOCK
 		<form method="post" action="{$base_url}">
 			<fieldset class="{$class}">
 				<legend>{$bt_row->amount} kr @ {$bt_row->bdate}</legend>
@@ -372,7 +351,7 @@ HTML_BLOCK;
 				
 HTML_BLOCK;
 
-	$query = <<<SQL_BLOCK
+    $query = <<<SQL_BLOCK
 SELECT
 	bank_transactions.bank_t_row AS row,
 	splits.value_num / splits.value_denom AS value,
@@ -396,37 +375,34 @@ ORDER BY ABS(splits.value_num - bank_transactions.amount * splits.value_denom),
 	ABS(UNIX_TIMESTAMP(transactions.post_date) - UNIX_TIMESTAMP(bank_transactions.bdate))
 SQL_BLOCK;
 
-	$count = 0;
-	/** @var table_db_result_row_value_date_description_guid $match_row */
-	foreach($db->objects($query) as $match_row)
-	{
-		if(!$count++)
-		{
-			echo <<<HTML_BLOCK
+    $count = 0;
+    /** @var table_db_result_row_value_date_description_guid $match_row */
+    foreach ($db->objects($query) as $match_row) {
+        if (!$count++) {
+            echo <<<HTML_BLOCK
 						<h3>Match sugestions (TR)</h3>
 						<ul>
 						
 HTML_BLOCK;
-		}
-		$description = htmlentities($match_row->description);
-		$url = "{$base_url}&amp;guid={$match_row->guid}";
-		$date = substr($match_row->date, 0, 10);
-		$other_account = $match_row->other_account ? ' (' . htmlentities($match_row->other_account) . ')' : '';
-		echo <<<HTML_BLOCK
+        }
+        $description = htmlentities($match_row->description);
+        $url = "{$base_url}&amp;guid={$match_row->guid}";
+        $date = substr($match_row->date, 0, 10);
+        $other_account = $match_row->other_account ? ' (' . htmlentities($match_row->other_account) . ')' : '';
+        echo <<<HTML_BLOCK
 						<li><a href="{$url}">{$match_row->value} @ {$date}: {$description}</a>{$other_account}</li>
 
 HTML_BLOCK;
-	}
+    }
 
-	if($count)
-	{
-		echo <<<HTML_BLOCK
+    if ($count) {
+        echo <<<HTML_BLOCK
 					</ul>
 
 HTML_BLOCK;
-	}
+    }
 
-	$query = <<<SQL_BLOCK
+    $query = <<<SQL_BLOCK
 SELECT
 	accounts.code,
 	accounts.name,
@@ -453,82 +429,75 @@ ORDER BY
 	MAX(DATE(transactions.post_date)) DESC
 SQL_BLOCK;
 
-	$count = 0;
+    $count = 0;
 
-	/** @var table_db_result_row_text_match $match_row */
-	foreach($db->objects($query) as $match_row)
-	{
-		if(!$count++)
-		{
-			echo <<<HTML_BLOCK
+    /** @var table_db_result_row_text_match $match_row */
+    foreach ($db->objects($query) as $match_row) {
+        if (!$count++) {
+            echo <<<HTML_BLOCK
 						<h3>Match sugestions (Text)</h3>
 						<ul>
 						
 HTML_BLOCK;
-		}
-		$other_account_name =  htmlentities($match_row->name);
-		if($match_row->connections > 1)
-		{
-			echo <<<HTML_BLOCK
+        }
+        $other_account_name = htmlentities($match_row->name);
+        if ($match_row->connections > 1) {
+            echo <<<HTML_BLOCK
 						<li onclick="setAccount(this, '{$match_row->code}')">{$other_account_name}, {$match_row->connections} connections, amount in range {$match_row->amount_from} - {$match_row->amount_to}, dates in range {$match_row->date_from} - {$match_row->date_to}</li>
 
 HTML_BLOCK;
-		}
-		else
-		{
-			echo <<<HTML_BLOCK
+        } else {
+            echo <<<HTML_BLOCK
 						<li onclick="setAccount(this, '{$match_row->code}')">{$other_account_name}, {$match_row->connections} connections, amount {$match_row->amount_from}, date {$match_row->date_from}</li>
 
 HTML_BLOCK;
-		}
-	}
+        }
+    }
 
-	if($count)
-	{
-		echo <<<HTML_BLOCK
+    if ($count) {
+        echo <<<HTML_BLOCK
 					</ul>
 
 HTML_BLOCK;
-	}
+    }
 
-	echo <<<HTML_BLOCK
+    echo <<<HTML_BLOCK
 				<br />
 			</fieldset>
 		</form>
 
 HTML_BLOCK;
-	}
+}
 
-	if($limit_count) {
-		$relative_url = "?account={$selected_account}&amp;limit={$limit_count}";
-		if(isset($_GET['old'])) {
-			$order_by = "bdate";
-			$relative_url .= '&amp;old';
-		}
+if ($limit_count) {
+    $relative_url = "?account={$selected_account}&amp;limit={$limit_count}";
+    if (isset($_GET['old'])) {
+        $order_by = "bdate";
+        $relative_url .= '&amp;old';
+    }
 
-		$links = [];
-		if($skip_count) {
-			$links[] = "<a href=\"{$relative_url}&amp;skip=0\">&lt;&lt;-</a>";
+    $links = [];
+    if ($skip_count) {
+        $links[] = "<a href=\"{$relative_url}&amp;skip=0\">&lt;&lt;-</a>";
 
-			if($skip_count > $limit_count)
-			{
-				$skip_back = $skip_count - $limit_count;
-				$links[] = "<a href=\"{$relative_url}&amp;skip={$skip_back}\">&lt;-</a>";
-			}
-		}
-		$page = 1 + floor($skip_count / $limit_count);
-		$first = $skip_count + 1;
-		$last = $skip_count + $row_count;
-		$links[] = "<strong>{$page}</strong>";
-		$links[] = "<span>({$first} - {$last})</span>";
-		if($row_count > 0 AND $row_count == $limit_count) {
-			$skip_next = $skip_count + $limit_count;
-			$links[] = "<a href=\"{$relative_url}&amp;skip={$skip_next}\">-&gt;</a>";
-		}
-		echo "<p>" . implode("<span> &nbsp; &nbsp; </span>", $links) . "</p>";
-	}
+        if ($skip_count > $limit_count) {
+            $skip_back = $skip_count - $limit_count;
+            $links[] = "<a href=\"{$relative_url}&amp;skip={$skip_back}\">&lt;-</a>";
+        }
+    }
+    $page = 1 + floor($skip_count / $limit_count);
+    $first = $skip_count + 1;
+    $last = $skip_count + $row_count;
+    $links[] = "<strong>{$page}</strong>";
+    $links[] = "<span>({$first} - {$last})</span>";
+    if ($row_count > 0 and $row_count == $limit_count) {
+        $skip_next = $skip_count + $limit_count;
+        $links[] = "<a href=\"{$relative_url}&amp;skip={$skip_next}\">-&gt;</a>";
+    }
+    echo "<p>" . implode("<span> &nbsp; &nbsp; </span>", $links) . "</p>";
+}
 
-	echo <<<HTML_BLOCK
+echo <<<HTML_BLOCK
 	    <p><a href="?">&laquo; Account view</a></p>
 	
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.js" type="text/javascript"></script>
@@ -580,45 +549,45 @@ UPDATE bank_transactions LEFT JOIN splits ON (splits.guid = bank_transactions.ba
 
 class table_bank_transactions
 {
-	public $bdate;
-	public $vdate;
-	public $vnr;
-	public $vtext;
-	public $amount;
-	public $saldo;
-	public $account;
-	public $bank_tid;
-	public $bank_t_row;
+    public $bdate;
+    public $vdate;
+    public $vnr;
+    public $vtext;
+    public $amount;
+    public $saldo;
+    public $account;
+    public $bank_tid;
+    public $bank_t_row;
 }
 
 class table_db_result_account_name_rows
 {
-	public $account;
-	public $name;
-	public $rowc;
-	public $erowc;
-	public $prowc;
-	public $edate;
-	public $fdate;
+    public $account;
+    public $name;
+    public $rowc;
+    public $erowc;
+    public $prowc;
+    public $edate;
+    public $fdate;
 }
 
 class table_db_result_row_value_date_description_guid
 {
-	public $row;
-	public $value;
-	public $date;
-	public $description;
-	public $guid;
-	public $other_account;
+    public $row;
+    public $value;
+    public $date;
+    public $description;
+    public $guid;
+    public $other_account;
 }
 
 class table_db_result_row_text_match
 {
-	public $code;
-	public $name;
-	public $connections;
-	public $amount_from;
-	public $amount_to;
-	public $date_from;
-	public $date_to;
+    public $code;
+    public $name;
+    public $connections;
+    public $amount_from;
+    public $amount_to;
+    public $date_from;
+    public $date_to;
 }

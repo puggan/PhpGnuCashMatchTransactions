@@ -80,7 +80,7 @@ bi.ajax_add_row = function(row) {
 	let li = $('li#item-' + row);
 	let data = {
 		action: 'add',
-		row: row
+		row
 	};
 	let formdata = new FormData(li.find('form')[0]);
 	data.date = formdata.get('date');
@@ -101,11 +101,11 @@ bi.ajax_add_row = function(row) {
 		{
 			type: 'POST',
 			url: 'bank_api.php',
-			data: data,
-			error: function () {
+			data,
+			error() {
 				li.css('opacity', 1);
 			},
-			success: function() {
+			success() {
 				li.remove();
 
 				// TODO: handle returned data
@@ -122,8 +122,8 @@ bi.ajax_connect_row = function(row, guid) {
 	let li = $('li#item-' + row);
 	let data = {
 		action: 'connect',
-		row: row,
-		guid: guid
+		row,
+		guid
 	};
 
 	li.css('opacity', 0.5);
@@ -132,11 +132,11 @@ bi.ajax_connect_row = function(row, guid) {
 		{
 			type: 'POST',
 			url: 'bank_api.php',
-			data: data,
-			error: function () {
+			data,
+			error() {
 				li.css('opacity', 1);
 			},
-			success: function() {
+			success() {
 				li.remove();
 
 				// TODO: handle returned data

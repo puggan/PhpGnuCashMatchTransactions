@@ -1,30 +1,28 @@
 <?php
 
-	if(empty($_GET['account']))
-	{
-		header('Location: bank.php');
-		die();
-	}
+if (empty($_GET['account'])) {
+    header('Location: bank.php');
+    die();
+}
 
-	$account_code = (int) $_GET['account'];
+$account_code = (int) $_GET['account'];
 
-	require_once(__DIR__ . "/token_auth.php");
-	require_once(__DIR__ . "/bank_funk.php");
-	$bi = new Bank_interface();
-	$accounts = $bi->accounts();
+require_once(__DIR__ . "/token_auth.php");
+require_once(__DIR__ . "/bank_funk.php");
+$bi = new Bank_interface();
+$accounts = $bi->accounts();
 
-	if(empty($accounts[$account_code]))
-	{
-		header('Location: bank.php');
-		die();
-	}
+if (empty($accounts[$account_code])) {
+    header('Location: bank.php');
+    die();
+}
 
-	ksort($accounts, SORT_STRING);
-	$selected_account_html = htmlentities($accounts[$account_code]);
-	$accounts_json = json_encode($accounts, JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE + JSON_FORCE_OBJECT);
-	$rows_json = json_encode($bi->account_cache($account_code), JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE);
+ksort($accounts, SORT_STRING);
+$selected_account_html = htmlentities($accounts[$account_code]);
+$accounts_json = json_encode($accounts, JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE + JSON_FORCE_OBJECT);
+$rows_json = json_encode($bi->account_cache($account_code), JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE);
 
-	echo <<<HTML_BLOCK
+echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Unmatched transactions of account: {$selected_account_html}</title>
@@ -47,9 +45,9 @@
 		<script src="lib/chosen/docsupport/prism.js" type="text/javascript" charset="utf-8"></script>
 		<script type="text/javascript">
 			bi = {};
-			bi.selected_account = {$account_code};
-			bi.accounts = {$accounts_json};
-			bi.rows = {$rows_json};
+			bi.selected_account =; {$account_code};
+			bi.accounts =; {$accounts_json};
+			bi.rows =; {$rows_json};
 		</script>
 		<script type="text/javascript" src="bank2.js"></script>
 	</head>

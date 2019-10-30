@@ -17,7 +17,7 @@
 					}
 				};
 				a.open("POST", "api.php", true);
-				a.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+				a.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 				a.send("data=" + btoa(JSON.stringify(data)));
 			}
 

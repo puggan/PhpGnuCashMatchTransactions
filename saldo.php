@@ -1,6 +1,6 @@
 <?php
 
-	$query = <<<SQL_BLOCK
+$query = <<<SQL_BLOCK
 SELECT
    DATE(transactions.post_date) AS d,
    SUM(value_num/value_denom) AS v
@@ -11,20 +11,24 @@ WHERE accounts.code LIKE '1%'
 GROUP BY 1
 SQL_BLOCK;
 
-	require_once(__DIR__ . "/auth.php");
-	require_once(__DIR__ . "/token_auth.php");
+require_once(__DIR__ . "/auth.php");
+require_once(__DIR__ . "/token_auth.php");
 
-	$db = Auth::new_db();
-	$sum = 0;
-	$trs = array();
+$db = Auth::new_db();
+$sum = 0;
+$trs = [];
 
-	foreach($db->g_read($query, 'd', 'v') as $d => $v)
-	{
-		$sum += $v;
-		$trs[] = "			<tr><td>" . htmlentities($d) . "</td><td>" . number_format($v, 2, '.', ' ') . "</td><td>" . number_format($sum, 2, '.', ' ') . "</td></li>";
-	}
+foreach ($db->g_read($query, 'd', 'v') as $d => $v) {
+    $sum += $v;
+    $trs[] = "			<tr><td>" . htmlentities($d) . "</td><td>" . number_format(
+            $v,
+            2,
+            '.',
+            ' '
+        ) . "</td><td>" . number_format($sum, 2, '.', ' ') . "</td></li>";
+}
 
-	echo <<<HTML_BLOCK
+echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Saldo</title>
@@ -45,8 +49,8 @@ SQL_BLOCK;
 			<tbody>
 
 HTML_BLOCK;
-	echo implode("\n", $trs);
-	echo <<<HTML_BLOCK
+echo implode("\n", $trs);
+echo <<<HTML_BLOCK
 			</tbody>
 		</table>
 	</body>

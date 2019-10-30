@@ -3,25 +3,24 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-	require_once(__DIR__ . "/auth.php");
-	require_once(__DIR__ . "/gnucach.php");
-	require_once(__DIR__ . "/token_auth.php");
+require_once(__DIR__ . "/auth.php");
+require_once(__DIR__ . "/gnucach.php");
+require_once(__DIR__ . "/token_auth.php");
 
-	$db = Auth::new_db();
+$db = Auth::new_db();
 
-	$json_options = 0
-		// + JSON_HEX_QUOT
-		// + JSON_HEX_TAG
-		// + JSON_HEX_AMP
-		// + JSON_HEX_APOS
-		+ JSON_NUMERIC_CHECK
-		+ JSON_PRETTY_PRINT
-		+ JSON_UNESCAPED_SLASHES
-		// + JSON_FORCE_OBJECT
-		+ JSON_UNESCAPED_UNICODE
-		;
+$json_options = 0
+    // + JSON_HEX_QUOT
+    // + JSON_HEX_TAG
+    // + JSON_HEX_AMP
+    // + JSON_HEX_APOS
+    + JSON_NUMERIC_CHECK
+    + JSON_PRETTY_PRINT
+    + JSON_UNESCAPED_SLASHES
+    // + JSON_FORCE_OBJECT
+    + JSON_UNESCAPED_UNICODE;
 
-	echo <<<HTML_BLOCK
+echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Food per day</title>
@@ -51,7 +50,7 @@ ini_set('display_errors', 1);
 
 HTML_BLOCK;
 
-	$query = <<<SQL_BLOCK
+$query = <<<SQL_BLOCK
 SELECT
 	accounts.code,
 	accounts.name,
@@ -71,29 +70,27 @@ GROUP BY transactions.guid
 ORDER BY transactions.post_date DESC, accounts.code, transactions.description
 SQL_BLOCK;
 
-	$count = 0;
-	$day_count = 0;
-	$last_day = NULL;
+$count = 0;
+$day_count = 0;
+$last_day = null;
 
-	/** @var table_db_result_row_odd_match $match_row */
-	foreach($db->objects($query) as $row)
-	{
-		$row->day = substr($row->post_date, 0, 10);
-		$row->value = round($row->value_num / $row->value_denom, 2);
+/** @var table_db_result_row_odd_match $match_row */
+foreach ($db->objects($query) as $row) {
+    $row->day = substr($row->post_date, 0, 10);
+    $row->value = round($row->value_num / $row->value_denom, 2);
 
-		if($row->day != $last_day)
-		{
-			if($day_count) {
-				echo <<<HTML_BLOCK
+    if ($row->day != $last_day) {
+        if ($day_count) {
+            echo <<<HTML_BLOCK
 				</tbody>
 			</table>
 						
 HTML_BLOCK;
-			}
-			$day_count = 0;
-			$last_day = $row->day;
-			$weekday = date("l", strtotime($row->day));
-			echo <<<HTML_BLOCK
+        }
+        $day_count = 0;
+        $last_day = $row->day;
+        $weekday = date("l", strtotime($row->day));
+        echo <<<HTML_BLOCK
 			<table>
 				<caption><h2>{$last_day}, {$weekday}</h2></caption>
 				<colgroup>
@@ -108,28 +105,27 @@ HTML_BLOCK;
 				<tbody>
 						
 HTML_BLOCK;
-		}
+    }
 
-		$day_count++;
-		$json = json_encode($row, $json_options);
-		$htmljson = htmlentities($json);
-		$htmlrow = (object) array_map('htmlentities', (array) $row);
-		echo <<<HTML_BLOCK
+    $day_count++;
+    $json = json_encode($row, $json_options);
+    $htmljson = htmlentities($json);
+    $htmlrow = (object) array_map('htmlentities', (array) $row);
+    echo <<<HTML_BLOCK
 					<tr><td>{$htmlrow->value} kr</td><td>{$htmlrow->name}</td><td>{$htmlrow->description}</td><td>{$htmlrow->name2}</td></tr>
 
 HTML_BLOCK;
-	}
+}
 
-	if($day_count)
-	{
-		echo <<<HTML_BLOCK
+if ($day_count) {
+    echo <<<HTML_BLOCK
 				</tbody>
 			</table>
 
 HTML_BLOCK;
-	}
+}
 
-	echo <<<HTML_BLOCK
+echo <<<HTML_BLOCK
 		<p><a href="?">&laquo; Account view</a></p>
 	
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.js" type="text/javascript"></script>
@@ -154,8 +150,8 @@ HTML_BLOCK;
 
 class table_db_result_row_odd_match
 {
-	public $row_count;
-	public $account_count;
-	public $accounts;
-	public $matchtext;
+    public $row_count;
+    public $account_count;
+    public $accounts;
+    public $matchtext;
 }

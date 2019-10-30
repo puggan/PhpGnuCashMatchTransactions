@@ -1,12 +1,12 @@
 <?php
 
-	require_once(__DIR__ . "/../auth.php");
-	$db = Auth::new_db();
+require_once(__DIR__ . "/../auth.php");
+$db = Auth::new_db();
 
-	$query = "SELECT code, name FROM accounts WHERE code BETWEEN 4200 AND 4299";
-	$group_names = $db->read($query, 'code', 'name');
+$query = "SELECT code, name FROM accounts WHERE code BETWEEN 4200 AND 4299";
+$group_names = $db->read($query, 'code', 'name');
 
-	$query = <<<SQL_BLOCK
+$query = <<<SQL_BLOCK
 SELECT
    accounts.code AS code_group,
    SUM(value_num/value_denom) AS v
@@ -16,27 +16,26 @@ FROM splits
 WHERE accounts.code BETWEEN 4200 AND 4299
 GROUP BY 1
 SQL_BLOCK;
-	$group_values = $db->read($query, 'code_group', 'v');
+$group_values = $db->read($query, 'code_group', 'v');
 
-	$trs = array();
-	$pie = array();
-	foreach($group_values as $group => $value)
-	{
-		$value_text = number_format($value, 2, '.', ' ') . ' kr';
-		$data = array('short' => $group, 'long' => $group_names[$group] ?? 'Group ' . $group, 'value_text' => $value_text);
-		$trs[] = implode("</td><td>", array_map('htmlentities', $data));
-		$data['value'] = $value;
-		$pie[] = $data;
-	}
-	$trs = "<tr><td>" . implode("</td></tr>\n\t\t\t\t<tr><td>", $trs) . "</td></tr>";
-	$json_data = json_encode($pie);
-	echo <<<HTML_BLOCK
+$trs = [];
+$pie = [];
+foreach ($group_values as $group => $value) {
+    $value_text = number_format($value, 2, '.', ' ') . ' kr';
+    $data = ['short' => $group, 'long' => $group_names[$group] ?? 'Group ' . $group, 'value_text' => $value_text];
+    $trs[] = implode("</td><td>", array_map('htmlentities', $data));
+    $data['value'] = $value;
+    $pie[] = $data;
+}
+$trs = "<tr><td>" . implode("</td></tr>\n\t\t\t\t<tr><td>", $trs) . "</td></tr>";
+$json_data = json_encode($pie);
+echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Cost ditrubition 42xx</title>
 		<script src="https://d3js.org/d3.v4.js"></script>
 		<script>
-			var dataset = {$json_data};
+			var dataset =; {$json_data};
 			
 			window.addEventListener('DOMContentLoaded', function() {
 	
@@ -47,7 +46,7 @@ SQL_BLOCK;
 	         var g = svg.append("g")
 	            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 	
-				var color = d3.scaleOrdinal(d3.schemeCategory20b);;
+				var color = d3.scaleOrdinal(d3.schemeCategory20b);
 	
 				var pie = d3.pie()
 	            .sort(null)

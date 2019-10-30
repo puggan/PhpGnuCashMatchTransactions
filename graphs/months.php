@@ -1,9 +1,9 @@
 <?php
 
-	require_once(__DIR__ . "/../auth.php");
-	$db = Auth::new_db();
+require_once(__DIR__ . "/../auth.php");
+$db = Auth::new_db();
 
-	$query = <<<SQL_BLOCK
+$query = <<<SQL_BLOCK
 SELECT
 	YEAR(transactions.post_date) AS year,
 	MONTH(transactions.post_date) AS month,
@@ -17,32 +17,39 @@ FROM splits INNER JOIN transactions ON (splits.tx_guid = transactions.guid) INNE
 WHERE transactions.post_date >= '2016-09-01'
 GROUP BY 1, 2 ORDER BY 1 DESC, 2 DESC
 SQL_BLOCK;
-	// WHERE (accounts.code BETWEEN 4000 AND 4900 OR accounts.code BETWEEN 8100 AND 8999)
+// WHERE (accounts.code BETWEEN 4000 AND 4900 OR accounts.code BETWEEN 8100 AND 8999)
 
-	function f($n) {
-		$n = round($n);
-		return '<span class="k">' . substr($n, 0, -3) . '</span> <span class="u">' . substr($n, -3) . '</span>';
-	}
-	$trs = [];
-	foreach($db->objects($query) as $o)
-	{
-		$result = -$o->income - $o->cost - $o->loan_payment;
-		if($result > 0) $class = 'good';
-		else if($result > -$o->loan_payment) $class = 'ok';
-		else $class = 'bad';
-		$trs[] = '<tr class="' . $class . '"><td>' .
-		$o->year . '-' . str_pad($o->month, 2, '0', STR_PAD_LEFT) . '-xx' .
-		'</td><td>' . f($o->cost - $o->tax) .
-		'</td><td>' . f($o->loan_payment) .
-		'</td><td>' . f($o->tax) .
-		'</td><td>' . f(-$o->income) .
-		'</td><td>' . f(-$o->income - $o->tax) .
-		'</td><td>' . f(-$o->loan_taken) .
-		'</td><td>' . f(-$o->income - $o->cost - $o->loan_payment) .
-		'</td></tr>';
-	}
-	$trs = implode("\n\t\t\t\t", $trs);
-	echo <<<HTML_BLOCK
+function f($n)
+{
+    $n = round($n);
+    return '<span class="k">' . substr($n, 0, -3) . '</span> <span class="u">' . substr($n, -3) . '</span>';
+}
+
+$trs = [];
+foreach ($db->objects($query) as $o) {
+    $result = -$o->income - $o->cost - $o->loan_payment;
+    if ($result > 0) {
+        $class = 'good';
+    } else {
+        if ($result > -$o->loan_payment) {
+            $class = 'ok';
+        } else {
+            $class = 'bad';
+        }
+    }
+    $trs[] = '<tr class="' . $class . '"><td>' .
+        $o->year . '-' . str_pad($o->month, 2, '0', STR_PAD_LEFT) . '-xx' .
+        '</td><td>' . f($o->cost - $o->tax) .
+        '</td><td>' . f($o->loan_payment) .
+        '</td><td>' . f($o->tax) .
+        '</td><td>' . f(-$o->income) .
+        '</td><td>' . f(-$o->income - $o->tax) .
+        '</td><td>' . f(-$o->loan_taken) .
+        '</td><td>' . f(-$o->income - $o->cost - $o->loan_payment) .
+        '</td></tr>';
+}
+$trs = implode("\n\t\t\t\t", $trs);
+echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Cost per month</title>
