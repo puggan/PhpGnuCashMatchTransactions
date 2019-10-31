@@ -157,10 +157,17 @@ class GnuCash
         );
         $this->runQuery("USE `{$this->sDbName}`;");
         foreach ($aTables as $aTable) {
-            $aGUIDs = $this->runQuery(
-                'S'.'ELECT * FROM `' . $aTable['TABLE_NAME'] . '` WHERE `guid` LIKE :guid;',
-                [':guid' => $sGUID]
-            );
+            try {
+                $aGUIDs = $this->runQuery(
+                    'S' . 'ELECT * FROM `' . $aTable['TABLE_NAME'] . '` WHERE `guid` LIKE :guid;',
+                    [':guid' => $sGUID]
+                );
+            } catch (\PDOException $pdoe) {
+                if(strpos($pdoe->getMessage(), 'Column not found') === false) {
+                    throw $pdoe;
+                    continue;
+                }
+            }
             if ($aGUIDs) {
                 return true;
             }
