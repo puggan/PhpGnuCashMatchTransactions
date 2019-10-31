@@ -102,14 +102,19 @@ bi.init = () => {
 	for(const row of bi.rows) {
 		if(!row.matches) {
 			row.prio = 0;
-		} else if(row.matches.tx && Object.keys(row.matches.tx).length > 1) {
+		} else if(row.matches.tx && Object.keys(row.matches.tx).length > 0) {
 			row.prio = 3;
 		} else if(!row.matches.rows) {
 			row.prio = 0;
-		} else if(Object.keys(row.matches.rows).length > 1) {
-			row.prio = 1;
 		} else {
-			row.prio = 2;
+			const matches = Object.keys(row.matches.rows).length;
+			if(matches > 1) {
+				row.prio = 1;
+			} else if (matches < 1) {
+				row.prio = 0;
+			} else {
+				row.prio = 2;
+			}
 		}
 	}
 	for(let prio = 3; prio >= 0; prio--) {
