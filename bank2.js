@@ -120,7 +120,7 @@ bi.init = () => {
 	for(let prio = 3; prio >= 0; prio--) {
 		for(const row of bi.rows) {
 			if(row.prio === prio) {
-				if (selectedRows.length < 50) {
+				if (selectedRows.length < 10) {
 					selectedRows.push(row);
 				} else {
 					otherRows.push(row);
@@ -129,12 +129,26 @@ bi.init = () => {
 		}
 	}
 
+	let $mainList = $('#main_list');
+	const chosenOptions = {disable_search_threshold: 2};
 	const render = (row) => {
 		const li = $('<li>');
 		li.attr('id', 'item-' + row.bank_t_row);
 		li.html(bi.render(row));
-		$('#main_list').append(li);
+		$mainList.append(li);
+		$(li).find('select').chosen(chosenOptions);
 	};
+
+	const more = $('<span>');
+	more.insertAfter($mainList);
+	const updateMoreText = () => {
+		if(otherRows.length > 0) {
+			more.text('Load more (' + otherRows.length  + ')');
+		} else {
+			more.html('');
+		}
+	};
+	updateMoreText();
 
 	const appendNext = otherRows.length < 1 ? () => {} : () => {
 		if(otherRows.length > 0) {
@@ -143,7 +157,14 @@ bi.init = () => {
 			selectedRows.push(row);
 			render(row);
 		}
+		updateMoreText();
 	};
+	more[0].style.cursor = 'pointer';
+	more.on('click', () => {
+		for(let i = 10; i > 0; i--) {
+			appendNext();
+		}
+	});
 
 	selectedRows.map(render);
 
@@ -220,8 +241,6 @@ bi.init = () => {
 		return false;
 	};
 
-
-	$('select').chosen({disable_search_threshold: 2});
 	$.datepicker.setDefaults({dateFormat: 'yy-mm-dd'});
 	let dateselectors = $('INPUT[type=date]');
 	dateselectors.datepicker();
