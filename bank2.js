@@ -138,7 +138,8 @@ bi.init = () => {
 
 	const appendNext = otherRows.length < 1 ? () => {} : () => {
 		if(otherRows.length > 0) {
-			const row = otherRows.pop();
+			// use shift() not pop() as we want the first one, not the last one
+			const row = otherRows.shift();
 			selectedRows.push(row);
 			render(row);
 		}
