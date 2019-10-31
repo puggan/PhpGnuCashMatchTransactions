@@ -98,37 +98,27 @@ bi.init = () => {
 
 	const selectedRows = [];
 	const otherRows = [];
-	// matches TX
+	// Mark with prio
 	for(const row of bi.rows) {
-		if (!row.matches || !row.matches.tx) {
-			continue;
-		}
-		if (selectedRows.length < 50) {
-			selectedRows.push(row);
+		if(!row.matches) {
+			row.prio = 0;
+		} else if(row.matches.tx && Object.keys(row.matches.tx).length > 1) {
+			row.prio = 3;
+		} else if(!row.matches.rows) {
+			row.prio = 0;
+		} else if(Object.keys(row.matches.rows).length > 1) {
+			row.prio = 1;
 		} else {
-			otherRows.push(row);
+			row.prio = 2;
 		}
 	}
-	// matches Account
-	for(const row of bi.rows) {
-		if (!row.matches || row.matches.tx) {
-			continue;
-		}
-		if (selectedRows.length < 50) {
-			selectedRows.push(row);
-		} else {
-			otherRows.push(row);
-		}
-	}
-	// no matches
-	for(const row of bi.rows) {
-		if (row.matches) {
-			continue;
-		}
-		if (selectedRows.length < 50) {
-			selectedRows.push(row);
-		} else {
-			otherRows.push(row);
+	for(let prio = 3; prio >= 0; prio--) {
+		if(row.prio === prio) {
+			if (selectedRows.length < 50) {
+				selectedRows.push(row);
+			} else {
+				otherRows.push(row);
+			}
 		}
 	}
 
