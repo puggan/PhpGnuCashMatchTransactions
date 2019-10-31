@@ -189,7 +189,7 @@ SQL_BLOCK;
             if (!$dbRow->data) {
                 $bankRow = $this->bankRow($dbRow->bank_t_row);
                 $bankRow->saveCache($this->database);
-                $dbRow = $this->database->object($query . ' AND bank_t_row = ' . $dbRow->bank_t_row);
+                $dbRow = $this->database->object(strtr($query, ['ORDER BY ' =>' AND bank_t_row = ' . $dbRow->bank_t_row . ' ORDER BY ']);
             }
             $list[] = json_decode($dbRow->data, true, 512, JSON_THROW_ON_ERROR);
         }
