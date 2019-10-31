@@ -82,6 +82,10 @@ namespace PhpDoc {
         public $name;
         public $prowc;
         public $rowc;
+
+        public $pos;
+        public $neg;
+        public $saldo;
     }
 
     /**

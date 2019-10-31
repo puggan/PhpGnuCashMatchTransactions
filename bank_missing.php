@@ -9,7 +9,7 @@ use Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingSplits;
 use Puggan\GnuCashMatcher\Models\Split;
 
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', '1');
 
 require_once __DIR__ . '/token_auth.php';
 

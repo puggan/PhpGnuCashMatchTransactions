@@ -298,7 +298,7 @@ class DB
             return $default;
         }
 
-        if (\\is_array($row) && \\count($row) === 1) {
+        if (\is_array($row) && \count($row) === 1) {
             return array_values($row)[0];
         }
 

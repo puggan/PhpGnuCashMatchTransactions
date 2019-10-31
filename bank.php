@@ -5,7 +5,7 @@ use Puggan\GnuCashMatcher\Auth;
 use Puggan\GnuCashMatcher\Models\BankTransaction;
 
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', '1');
 
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -34,6 +34,7 @@ SELECT account_guid, SUM(value_num/value_denom) AS s
 FROM splits
 GROUP BY account_guid
 SQL_BLOCK;
+    /** @var string[] $saldos */
     $saldos = $database->read($saldoQuery, 'account_guid', 's');
 
     echo <<<HTML_BLOCK
@@ -117,6 +118,7 @@ HTML_BLOCK;
     die();
 }
 
+/** @var string[] $accountIds */
 $accountIds = $database->read('SELECT code, guid FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code', 'code', 'guid');
 $accountNames = $database->read(
     'SELECT code, name FROM `accounts` WHERE LENGTH(code) = 4 ORDER BY code',
@@ -164,6 +166,7 @@ FROM splits
 WHERE tx_guid = {$txGuidSql}
 	AND account_guid = {$accountGuidSql}
 SQL_BLOCK;
+                    /** @var string[] $matchingSplits */
                     $matchingSplits = $database->read($query, null, 'guid');
                     if (count($matchingSplits)) {
                         $newGuid = $matchingSplits[0];
@@ -211,15 +214,15 @@ if (isset($_GET['skip'])) {
     $limit = 50000;
     $skipUrlHtml = '&amp;q=' . htmlentities(urlencode($_GET['q']));
 } elseif (isset($_GET['a'])) {
-        $amount = (int) $_GET['a'];
-        $filter = 'AND ((bank_transactions.amount BETWEEN ' . ($amount - 5) . ' AND ' . ($amount + 5) . ') OR (bank_transactions.amount BETWEEN ' . (0 - $amount - 5) . ' AND ' . (5 - $amount) . '))';
-        $limit = 50000;
-        $skipUrlHtml = '&amp;a=' . $amount;
-    } else {
-        $limit = 500;
-        $skipUrlHtml = '';
-        $filter = '';
-    }
+    $amount = (int) $_GET['a'];
+    $filter = 'AND ((bank_transactions.amount BETWEEN ' . ($amount - 5) . ' AND ' . ($amount + 5) . ') OR (bank_transactions.amount BETWEEN ' . (0 - $amount - 5) . ' AND ' . (5 - $amount) . '))';
+    $limit = 50000;
+    $skipUrlHtml = '&amp;a=' . $amount;
+} else {
+    $limit = 500;
+    $skipUrlHtml = '';
+    $filter = '';
+}
 
 if (isset($_GET['old'])) {
     $orderBy = 'bdate';
