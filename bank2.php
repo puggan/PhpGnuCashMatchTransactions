@@ -55,9 +55,9 @@ echo <<<HTML_BLOCK
 		<script src="lib/chosen/docsupport/prism.js" type="text/javascript" charset="utf-8"></script>
 		<script type="text/javascript">
 			bi = {};
-			bi.selected_account =; {$accountCode};
-			bi.accounts =; {$accountsJson};
-			bi.rows =; {$rowsJson};
+			bi.selected_account = {$accountCode};
+			bi.accounts = {$accountsJson};
+			bi.rows = {$rowsJson};
 		</script>
 		<script type="text/javascript" src="bank2.js"></script>
 	</head>
