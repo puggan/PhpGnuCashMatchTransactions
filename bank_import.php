@@ -8,8 +8,8 @@ require_once __DIR__ . '/token_auth.php';
 
 define('REGEXP_INT', '#^(0|-?[1-9]\d*)$#');
 define('REGEXP_DATE', '#^(20\d\d)-([0-1]\d)-([0-3]\d)$#');
-define('REGEXP_MONEY', "#^(-)?(0|[1-9]\d*)([ ,]\d\d\d)*[,\\.](\d\d)$#");
-define('REGEXP_MONEY_SEK', "#^(-)?(0|[1-9]\d*)([ ]\d\d\d)*([,\\.](\d\d?))?$#");
+define('REGEXP_MONEY', "#^(-)?(0|[1-9]\d*)([ ,\xc0\xa0]\d\d\d)*[,\\.](\d\d)$#u");
+define('REGEXP_MONEY_SEK', "#^(-)?(0|[1-9]\d*)([ \xc0\xa0]\d\d\d)*([,\\.](\d\d?))?$#u");
 
 $database = Auth::newDatabase();
 
@@ -47,17 +47,17 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                         echo " -> Fixed, replaced with '{$cells[2]}' <br />\n";
                     }
                     if (preg_match(REGEXP_MONEY, $cells[4])) {
-                        $cells[4] = str_replace(['.', ',', ' '], '', $cells[4]);
+                        $cells[4] = str_replace(['.', ',', ' ', "\xc0\xa0"], '', $cells[4]);
                     } elseif (preg_match(REGEXP_MONEY_SEK, $cells[4])) {
-                        $cells[4] = strtr($cells[4], [',' => '.', ' ' => '']) * 100;
+                        $cells[4] = strtr($cells[4], [',' => '.', ' ' => '', "\xc0\xa0" => '']) * 100;
                     } else {
                         echo $rowNr . ": Bad amount in 2th last column '{$cells[4]}' @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (preg_match(REGEXP_MONEY, $cells[5])) {
-                        $cells[5] = str_replace(['.', ',', ' '], '', $cells[5]);
+                        $cells[5] = str_replace(['.', ',', ' ', "\xc0\xa0"], '', $cells[5]);
                     } elseif (preg_match(REGEXP_MONEY_SEK, $cells[5])) {
-                        $cells[5] = strtr($cells[5], [',' => '.', ' ' => '']) * 100;
+                        $cells[5] = strtr($cells[5], [',' => '.', ' ' => '', "\xc0\xa0" => '']) * 100;
                     } else {
                         echo $rowNr . ": Bad amount in last column '{$cells[5]}' @ '{$dbRow}' <br />\n";
                         continue 2;
@@ -118,7 +118,7 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     $banktransaction->vdate = $vdate;
                     $banktransaction->vnr = $cells[0] . $cells[1];
                     $banktransaction->vtext = $cells[6];
-                    $banktransaction->amount = str_replace(['.', ',', ' '], '', $cells[8]) / 100;
+                    $banktransaction->amount = str_replace(['.', ',', ' ', "\xc0\xa0"], '', $cells[8]) / 100;
                     $banktransaction->saldo = 0;
                     $banktransaction->account = $_POST['account'];
 
@@ -154,8 +154,8 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     $banktransaction->vdate = $cells[2];
                     $banktransaction->vnr = 0;
                     $banktransaction->vtext = $cells[4];
-                    $banktransaction->amount = str_replace(['.', ',', ' '], '', $cells[6]) / 100;
-                    $banktransaction->saldo = str_replace(['.', ',', ' '], '', $cells[7]) / 100;
+                    $banktransaction->amount = str_replace(['.', ',', ' ', "\xc0\xa0"], '', $cells[6]) / 100;
+                    $banktransaction->saldo = str_replace(['.', ',', ' ', "\xc0\xa0"], '', $cells[7]) / 100;
                     $banktransaction->account = $_POST['account'];
 
                     if($banktransaction->add($database)) {
@@ -193,8 +193,8 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     $banktransaction->vdate = $vdate;
                     $banktransaction->vnr = 0;
                     $banktransaction->vtext = $cells[0];
-                    $banktransaction->amount = str_replace(['.', ',', ' '], '', $cells[3]) / 100;
-                    $banktransaction->saldo = str_replace(['.', ',', ' '], '', $cells[4]) / 100;
+                    $banktransaction->amount = str_replace(['.', ',', ' ', "\xc0\xa0"], '', $cells[3]) / 100;
+                    $banktransaction->saldo = str_replace(['.', ',', ' ', "\xc0\xa0"], '', $cells[4]) / 100;
                     $banktransaction->account = $_POST['account'];
 
                     if($banktransaction->add($database)) {
