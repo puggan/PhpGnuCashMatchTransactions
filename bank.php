@@ -73,8 +73,8 @@ HTML_BLOCK;
     /** @var \PhpDoc\table_db_result_account_name_rows_balance $dbRow */
     foreach ($database->g_objects($query) as $dbRow) {
         $dbRow->prowc = (int) (100 * $dbRow->erowc / $dbRow->rowc);
-        $dbRow->pos = $dbRow->missingPos > 0 ? number_format($dbRow->missingPos, 2, '.', ' ') : '';
-        $dbRow->neg = $dbRow->missingNeg < 0 ? number_format($dbRow->missingNeg, 2, '.', ' ') : '';
+        $dbRow->pos = $dbRow->missingPos > 0 ? number_format(+$dbRow->missingPos, 2, '.', ' ') : '';
+        $dbRow->neg = $dbRow->missingNeg < 0 ? number_format(+$dbRow->missingNeg, 2, '.', ' ') : '';
         $dbRow->saldo = number_format(
             empty($saldos[$dbRow->account_guid]) ? 0 : $saldos[$dbRow->account_guid] + $dbRow->missingPos + $dbRow->missingNeg,
             2,
