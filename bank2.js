@@ -98,9 +98,9 @@ bi.init = () => {
 
 	const selectedRows = [];
 	const otherRows = [];
-	// matches
+	// matches TX
 	for(const row of bi.rows) {
-		if (!row.matches) {
+		if (!row.matches || !row.matches.tx) {
 			continue;
 		}
 		if (selectedRows.length < 50) {
@@ -109,7 +109,18 @@ bi.init = () => {
 			otherRows.push(row);
 		}
 	}
-	// not matches
+	// matches Account
+	for(const row of bi.rows) {
+		if (!row.matches || row.matches.tx) {
+			continue;
+		}
+		if (selectedRows.length < 50) {
+			selectedRows.push(row);
+		} else {
+			otherRows.push(row);
+		}
+	}
+	// no matches
 	for(const row of bi.rows) {
 		if (row.matches) {
 			continue;
