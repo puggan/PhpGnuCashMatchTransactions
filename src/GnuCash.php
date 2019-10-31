@@ -134,7 +134,7 @@ class GnuCash
         mt_srand((int) (microtime(true) * 10000));
 
         while (true) {
-            $sTempGUID = strtolower(md5(uniqid(mt_rand(), true)));
+            $sTempGUID = strtolower(md5(uniqid((string) mt_rand(), true)));
             //  Theoretically there is an extremely small chance that there are duplicates.
             //  However, why not?
             if (!$this->GUIDExists($sTempGUID)) {
