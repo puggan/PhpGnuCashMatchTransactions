@@ -131,7 +131,7 @@ class GnuCash
     public function getNewGUID(): string
     {
         $sTempGUID = null;
-        mt_srand((int) (microtime() * 10000));
+        mt_srand((int) (microtime(true) * 10000));
 
         while (true) {
             $sTempGUID = strtolower(md5(uniqid(mt_rand(), true)));
