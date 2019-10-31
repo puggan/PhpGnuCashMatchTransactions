@@ -85,14 +85,15 @@ SQL_BLOCK;
 
     public function add(\Puggan\GnuCashMatcher\DB $db)
     {
+        $float = static function($number) {return +$number;};
         $query = <<<SQL_BLOCK
 INSERT INTO bank_transactions SET
     bdate = {$db->quote($this->bdate)},
     vdate = {$db->quote($this->vdate)},
-    vnr = {$db->quote($this->vnr)},
+    vnr = {$float($this->vnr)},
     vtext = {$db->quote($this->vtext)},
-    amount = {$db->quote($this->amount)},
-    saldo = {$db->quote($this->saldo)},
+    amount = {$float($this->amount)},
+    saldo = {$float($this->saldo)},
     account = {$db->quote($this->account)}
 SQL_BLOCK;
         return $db->insert($query);
