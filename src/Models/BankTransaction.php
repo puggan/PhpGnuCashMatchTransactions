@@ -65,7 +65,7 @@ class BankTransaction implements Interfaces\BankTransaction
         $hash = md5($data);
         $query = "SELECT md5 FROM bank_transactions_cache WHERE bank_t_row = {$this->bank_t_row}";
         $oldHash = $db->get($query);
-        if(hash_equals($oldHash, $hash)) {
+        if($oldHash && hash_equals($oldHash, $hash)) {
             $query = "UPDATE bank_transactions_cache SET verified_at = NOW(), revalidate = 0 WHERE bank_t_row = {$this->bank_t_row}";
         } else {
             $data = $db->quote($data);
