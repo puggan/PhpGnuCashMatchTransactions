@@ -128,17 +128,15 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     break;
 
                 case 8:
-                    $bdate = '20' . $cells[1];
-                    if (trim($bdate) < $minDate) {
+                    if (trim($cells[1]) < $minDate) {
                         continue 2;
                     }
-                    if (!preg_match(REGEXP_DATE, $bdate)) {
-                        echo $rowNr . ": Bad date in 4st column @ '{$dbRow}' <br />\n";
+                    if (!preg_match(REGEXP_DATE, $cells[1])) {
+                        echo $rowNr . ": Bad date in 2st column @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
 
-                    $vdate = '20' . $cells[2];
-                    if (!preg_match(REGEXP_DATE, $vdate)) {
+                    if (!preg_match(REGEXP_DATE, $cells[2])) {
                         echo $rowNr . ": Bad date in 5th column @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
@@ -152,8 +150,8 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     }
 
                     $banktransaction = new BankTransaction();
-                    $banktransaction->bdate = $bdate;
-                    $banktransaction->vdate = $vdate;
+                    $banktransaction->bdate = $cells[1];
+                    $banktransaction->vdate = $cells[2];
                     $banktransaction->vnr = 0;
                     $banktransaction->vtext = $cells[4];
                     $banktransaction->amount = str_replace(['.', ',', ' '], '', $cells[6]) / 100;
