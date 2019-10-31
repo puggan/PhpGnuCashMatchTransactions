@@ -1,5 +1,6 @@
 bi.render_account_list = function(selected_code) {
 	let html = '<option value="">-- Select Account --</option>';
+	const visible_list = [];
 	for(let account_code in bi.accounts)
 	{
 		if(account_code == selected_code)
@@ -76,79 +77,6 @@ bi.render = function(row) {
 	return html;
 };
 
-bi.ajax_add_row = function(row) {
-	let li = $('li#item-' + row);
-	let data = {
-		action: 'add',
-		row
-	};
-	let formdata = new FormData(li.find('form')[0]);
-	data.date = formdata.get('date');
-	data.amount = formdata.get('amount');
-	data.from = formdata.get('from');
-	data.to = formdata.get('to');
-	data.text = formdata.get('text');
-
-	if(!data.date) return false;
-	if(!data.amount) return false;
-	if(!data.from) return false;
-	if(!data.to) return false;
-	if(!data.text) return false;
-
-	li.css('opacity', 0.5);
-
-	$.ajax(
-		{
-			type: 'POST',
-			url: 'bank_api.php',
-			data,
-			error() {
-				li.css('opacity', 1);
-			},
-			success() {
-				li.remove();
-
-				// TODO: handle returned data
-			}
-		}
-	);
-
-	//let data.date = li.
-	console.log(data);
-	return false;
-};
-
-bi.ajax_connect_row = function(row, guid) {
-	let li = $('li#item-' + row);
-	let data = {
-		action: 'connect',
-		row,
-		guid
-	};
-
-	li.css('opacity', 0.5);
-
-	$.ajax(
-		{
-			type: 'POST',
-			url: 'bank_api.php',
-			data,
-			error() {
-				li.css('opacity', 1);
-			},
-			success() {
-				li.remove();
-
-				// TODO: handle returned data
-			}
-		}
-	);
-
-	//let data.date = li.
-	console.log(data);
-	return false;
-};
-
 bi.setAccount = function(source, account) {
 
 	if(!account) return false;
@@ -166,29 +94,130 @@ bi.setAccount = function(source, account) {
 	);
 };
 
-bi.init = function() {
-	for(i in bi.rows)
-	{
-		let row = bi.rows[i];
+bi.init = () => {
 
-		let li = $('<li>')
-			.attr('id', 'item-' + row.bank_t_row)
-			.html(bi.render(row));
-		$('#main_list')
-			.append(li);
+	const selectedRows = [];
+	const otherRows = [];
+	// matches
+	for(const row of bi.rows) {
+		if (!row.matches) {
+			continue;
+		}
+		if (selectedRows.length < 50) {
+			selectedRows.push(row);
+		} else {
+			otherRows.push(row);
+		}
+	}
+	// not matches
+	for(const row of bi.rows) {
+		if (row.matches) {
+			continue;
+		}
+		if (selectedRows.length < 50) {
+			selectedRows.push(row);
+		} else {
+			otherRows.push(row);
+		}
 	}
 
-	$('select')
-		.chosen({disable_search_threshold: 2});
+	const render = (row) => {
+		const li = $('<li>');
+		li.attr('id', 'item-' + row.bank_t_row);
+		li.html(bi.render(row));
+		$('#main_list').append(li);
+	};
+
+	const appendNext = otherRows.length < 1 ? () => {} : () => {
+		if(otherRows.length > 0) {
+			const row = otherRows.pop();
+			selectedRows.push(row);
+			render(row);
+		}
+	};
+
+	selectedRows.map(render);
+
+	bi.ajax_add_row = (row) => {
+		let li = $('li#item-' + row);
+		let data = {
+			action: 'add',
+			row
+		};
+		let formdata = new FormData(li.find('form')[0]);
+		data.date = formdata.get('date');
+		data.amount = formdata.get('amount');
+		data.from = formdata.get('from');
+		data.to = formdata.get('to');
+		data.text = formdata.get('text');
+
+		if(!data.date) return false;
+		if(!data.amount) return false;
+		if(!data.from) return false;
+		if(!data.to) return false;
+		if(!data.text) return false;
+
+		li.css('opacity', 0.5);
+
+		$.ajax(
+			{
+				type: 'POST',
+				url: 'bank_api.php',
+				data,
+				error() {
+					li.css('opacity', 1);
+				},
+				success() {
+					li.remove();
+					appendNext();
+					// TODO: handle returned data
+				}
+			}
+		);
+
+		//let data.date = li.
+		console.log(data);
+		return false;
+	};
+
+	bi.ajax_connect_row = (row, guid) => {
+		let li = $('li#item-' + row);
+		let data = {
+			action: 'connect',
+			row,
+			guid
+		};
+
+		li.css('opacity', 0.5);
+
+		$.ajax(
+			{
+				type: 'POST',
+				url: 'bank_api.php',
+				data,
+				error() {
+					li.css('opacity', 1);
+				},
+				success() {
+					li.remove();
+					appendNext();
+					// TODO: handle returned data
+				}
+			}
+		);
+
+		//let data.date = li.
+		console.log(data);
+		return false;
+	};
+
+
+	$('select').chosen({disable_search_threshold: 2});
 	$.datepicker.setDefaults({dateFormat: 'yy-mm-dd'});
 	let dateselectors = $('INPUT[type=date]');
 	dateselectors.datepicker();
-	dateselectors.each(function() {
-		$(this)
-			.datepicker(
-				'setDate',
-				$(this)
-					.val()
-			);
+	dateselectors.each((index, element) => {
+		const $element = $(element);
+		$element.datepicker('setDate', $element.val());
 	});
 };
