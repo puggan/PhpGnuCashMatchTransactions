@@ -1,9 +1,11 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../Auth.php';
+use Puggan\GnuCashMatcher\Auth;
 
-$db = Auth::new_db();
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$database = Auth::newDatabase();
 
 $query = <<<SQL_BLOCK
 SELECT
@@ -22,37 +24,38 @@ SQL_BLOCK;
 // WHERE (accounts.code BETWEEN 4000 AND 4900 OR accounts.code BETWEEN 8100 AND 8999)
 
 /**
- * @param int $n number to format, put last 3 chars in class u, and the rest in class k
+ * @param int $number number to format, put last 3 chars in class u, and the rest in class k
  * @return string
  */
-function f($n)
+function kSplit($number)
 {
-    $n = round($n);
-    return '<span class="k">' . substr($n, 0, -3) . '</span> <span class="u">' . substr($n, -3) . '</span>';
+    /** @noinspection CallableParameterUseCaseInTypeContextInspection TODO https://github.com/JetBrains/phpstorm-stubs/pull/700 */
+    $number = round($number);
+    return '<span class="k">' . substr($number, 0, -3) . '</span> <span class="u">' . substr($number, -3) . '</span>';
 }
 
-$trs = [];
-foreach ($db->objects($query) as $o) {
-    $result = -$o->income - $o->cost - $o->loan_payment;
+$transactions = [];
+foreach ($database->objects($query) as $dbRow) {
+    $result = -$dbRow->income - $dbRow->cost - $dbRow->loan_payment;
     if ($result > 0) {
         $class = 'good';
-    } elseif ($result > -$o->loan_payment) {
+    } elseif ($result > -$dbRow->loan_payment) {
         $class = 'ok';
     } else {
         $class = 'bad';
     }
-    $trs[] = '<tr class="' . $class . '"><td>' .
-        $o->year . '-' . str_pad($o->month, 2, '0', STR_PAD_LEFT) . '-xx' .
-        '</td><td>' . f($o->cost - $o->tax) .
-        '</td><td>' . f($o->loan_payment) .
-        '</td><td>' . f($o->tax) .
-        '</td><td>' . f(-$o->income) .
-        '</td><td>' . f(-$o->income - $o->tax) .
-        '</td><td>' . f(-$o->loan_taken) .
-        '</td><td>' . f(-$o->income - $o->cost - $o->loan_payment) .
+    $transactions[] = '<tr class="' . $class . '"><td>' .
+        $dbRow->year . '-' . str_pad($dbRow->month, 2, '0', STR_PAD_LEFT) . '-xx' .
+        '</td><td>' . kSplit($dbRow->cost - $dbRow->tax) .
+        '</td><td>' . kSplit($dbRow->loan_payment) .
+        '</td><td>' . kSplit($dbRow->tax) .
+        '</td><td>' . kSplit(-$dbRow->income) .
+        '</td><td>' . kSplit(-$dbRow->income - $dbRow->tax) .
+        '</td><td>' . kSplit(-$dbRow->loan_taken) .
+        '</td><td>' . kSplit(-$dbRow->income - $dbRow->cost - $dbRow->loan_payment) .
         '</td></tr>';
 }
-$trs = implode("\n\t\t\t\t", $trs);
+$transactions = implode("\n\t\t\t\t", $transactions);
 echo <<<HTML_BLOCK
 <html>
 	<head>
@@ -110,7 +113,7 @@ echo <<<HTML_BLOCK
 				</tr>
 			</thead>
 			<tbody>
-				{$trs}
+				{$transactions}
 			</tbody>
 		</table>
 	</body>

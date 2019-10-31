@@ -1,8 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/GnuCash.php';
+namespace Puggan\GnuCashMatcher;
 
 /**
  * Class Auth
@@ -38,25 +37,25 @@ class Auth
     // ***
 
     /**
-     * @return \Puggan\GnuCashMatcher\DB
+     * @return DB
      */
-    public function db(): \Puggan\GnuCashMatcher\DB
+    public function database(): DB
     {
-        return new \Puggan\GnuCashMatcher\DB($this->sDatabase, $this->sUsername, $this->sPassword, $this->sDatabaseServer, $this->sPort);
+        return new DB($this->sDatabase, $this->sUsername, $this->sPassword, $this->sDatabaseServer, $this->sPort);
     }
 
     /**
-     * @return \Puggan\GnuCashMatcher\DB
+     * @return DB
      */
-    public static function new_db(): \Puggan\GnuCashMatcher\DB
+    public static function newDatabase(): DB
     {
-        return (new self())->db();
+        return (new self())->database();
     }
 
     /**
      * @return GnuCash
      */
-    public function gnucash(): \GnuCash
+    public function gnucash(): GnuCash
     {
         return new GnuCash($this->sDatabaseServer, $this->sDatabase, $this->sUsername, $this->sPassword);
     }
@@ -64,7 +63,7 @@ class Auth
     /**
      * @return GnuCash
      */
-    public static function new_gnucash(): \GnuCash
+    public static function newGnuCash(): GnuCash
     {
         return (new self())->gnucash();
     }

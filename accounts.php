@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use Puggan\GnuCashMatcher\Auth;
+
 $query = <<<SQL_BLOCK
 SELECT
 	accounts.code,
@@ -13,24 +15,23 @@ FROM splits
 GROUP BY accounts.code
 SQL_BLOCK;
 
-require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
 
-$db = Auth::new_db();
-$sum = 0;
-$trs = [];
+$database = Auth::newDatabase();
+$total = 0;
+$transactions = [];
 
-/** @var \PhpDoc\saldo_sum $o */
-foreach ($db->g_objects($query, 'code') as $o) {
-    $trs[] = implode(
+/** @var \PhpDoc\saldo_sum $saldo */
+foreach ($database->g_objects($query, 'code') as $saldo) {
+    $transactions[] = implode(
         PHP_EOL,
         [
             '			<tr>',
-            '				<td>' . ($code = htmlentities($o->code)) . '</td>',
-            '				<td>' . htmlentities($o->name) . '</td>',
-            '				<td>' . number_format($o->v, 2, '.', ' ') . '</td>',
+            '				<td>' . ($code = htmlentities($saldo->code)) . '</td>',
+            '				<td>' . htmlentities($saldo->name) . '</td>',
+            '				<td>' . number_format($saldo->v, 2, '.', ' ') . '</td>',
             '				<td><a href="trs.php?account=' . $code . '">' . number_format(
-                $o->c,
+                $saldo->c,
                 0,
                 '.',
                 ' '
@@ -63,7 +64,7 @@ echo <<<HTML_BLOCK
 			<tbody>
 
 HTML_BLOCK;
-echo implode(PHP_EOL, $trs);
+echo implode(PHP_EOL, $transactions);
 echo <<<HTML_BLOCK
 			</tbody>
 		</table>

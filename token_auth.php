@@ -2,30 +2,36 @@
 declare(strict_types=1);
 /** @noinspection PhpUnhandledExceptionInspection */
 
-require_once __DIR__ . '/Auth.php';
+use Puggan\GnuCashMatcher\Auth;
 
-$auth_error = null;
-if (!empty($_POST) && !cookie_token_auth()) {
+require_once __DIR__ . '/vendor/autoload.php';
+
+$authError = null;
+if (!empty($_POST) && !cookieTokenAuth()) {
     if (empty($_POST['device'])) {
-        $auth_error = 'Missing device';
+        $authError = 'Missing device';
     } elseif (empty($_POST['user'])) {
-        $auth_error = 'Missing user';
+        $authError = 'Missing user';
     } elseif (empty($_POST['password'])) {
-        $auth_error = 'Missing password';
+        $authError = 'Missing password';
     } else {
         $auth = new Auth();
         if (!$auth->verify($_POST['user'], $_POST['password'])) {
-            $auth_error = 'Bad password';
+            $authError = 'Bad password';
         } else {
-            $token = base64_encode(random_bytes(20));
+            try {
+                $token = base64_encode(random_bytes(20));
+            } catch (\Exception $exception) {
+                throw new \RuntimeException($exception->getMessage(), $exception->getCode(), $exception);
+            }
             cookie_add_auth($token, $_POST['device'], $_POST['user'], 1);
             setcookie('auth_token', $token, strtotime('+1 year'), '/', '', true, true);
         }
     }
 }
-if (!cookie_token_auth()) {
-    if ($auth_error) {
-        $auth_error = '<div class="error">' . htmlentities($auth_error) . '</div>';
+if (!cookieTokenAuth()) {
+    if ($authError) {
+        $authError = '<div class="error">' . htmlentities($authError) . '</div>';
     }
     echo <<<HTML_BLOCK
 <html>
@@ -40,7 +46,7 @@ if (!cookie_token_auth()) {
 	</head>
 	<body>
 		<h1>403 - Login</h1>
-		{$auth_error}
+		{$authError}
 		<form method='post'>
 			<label>
 				<span>Device</span><br/>
@@ -69,7 +75,7 @@ HTML_BLOCK;
 /**
  * @return bool
  */
-function cookie_token_auth()
+function cookieTokenAuth()
 {
     if (PHP_SAPI === 'cli') {
         return true;
@@ -79,12 +85,12 @@ function cookie_token_auth()
         return false;
     }
 
-    $db = Auth::new_db();
-    if (!$db) {
+    $database = Auth::newDatabase();
+    if (!$database) {
         return false;
     }
 
-    return (bool) $db->get('SELECT auth_level FROM cookies WHERE token = ' . $db->quote($_COOKIE['auth_token']));
+    return (bool) $database->get('SELECT auth_level FROM cookies WHERE token = ' . $database->quote($_COOKIE['auth_token']));
 }
 
 /**
@@ -96,12 +102,12 @@ function cookie_token_auth()
  */
 function cookie_add_auth($token, $device, $user, $level)
 {
-    $db = Auth::new_db();
-    $sl = [
+    $database = Auth::newDatabase();
+    $values = [
         'auth_level = ' . (int) $level,
-        'device = ' . $db->quote($device),
-        'token = ' . $db->quote($token),
-        'user = ' . $db->quote($user),
+        'device = ' . $database->quote($device),
+        'token = ' . $database->quote($token),
+        'user = ' . $database->quote($user),
     ];
-    return $db->insert('INSERT INTO cookies SET ' . implode(', ', $sl));
+    return $database->insert('INSERT INTO cookies SET ' . implode(', ', $values));
 }

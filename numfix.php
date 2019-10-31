@@ -1,61 +1,63 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/Auth.php';
+use Puggan\GnuCashMatcher\Auth;
 
-$db = Auth::new_db();
+require_once __DIR__ . '/vendor/autoload.php';
 
-$weeks = $db->read(
+$database = Auth::newDatabase();
+
+$weeks = $database->read(
     "SELECT YEARWEEK(post_date, 1) AS y FROM transactions WHERE num = '' AND post_date < NOW() - INTERVAL 1 MONTH GROUP BY 1",
     'y',
     'y'
 );
 
 foreach ($weeks as $week) {
-    $ok = true;
+    $isOk = true;
     $prefix = substr($week, 0, 4) . 'w' . substr($week, 4) . 't';
     $last = 0;
-    $transactions = $db->read(
+    $transactions = $database->read(
         'SELECT guid, num FROM transactions WHERE YEARWEEK(post_date, 1) = ' . (int) $week . ' ORDER BY post_date, enter_date',
         'guid',
         'num'
     );
-    $used_nums = [];
-    foreach ($transactions as $guid => $num) {
-        if ($num) {
-            if (isset($used_nums[$num])) {
-                $ok = false;
-                trigger_error("{$num} used in multiple transactions: {$used_nums[$num]}, {$guid}");
-            } elseif (strpos($num, $prefix) !== 0) {
-                $ok = false;
-                trigger_error("{$num} don't match {$prefix}");
+    $usedNums = [];
+    foreach ($transactions as $guid => $numberString) {
+        if ($numberString) {
+            if (isset($usedNums[$numberString])) {
+                $isOk = false;
+                trigger_error("{$numberString} used in multiple transactions: {$usedNums[$numberString]}, {$guid}");
+            } elseif (strpos($numberString, $prefix) !== 0) {
+                $isOk = false;
+                trigger_error("{$numberString} don't match {$prefix}");
             } else {
-                $used_nums[$num] = $guid;
+                $usedNums[$numberString] = $guid;
             }
         }
     }
-    if (!$ok) {
+    if (!$isOk) {
         continue;
     }
-    foreach ($transactions as $guid => $num) {
-        if ($num) {
-            $nr = (int) ltrim(substr($num, strlen($prefix)), '0');
-            $last = max($nr, $last);
+    foreach ($transactions as $guid => $numberString) {
+        if ($numberString) {
+            $number = (int) ltrim(substr($numberString, strlen($prefix)), '0');
+            $last = max($number, $last);
         } else {
             $next = $last + 1;
-            $new_num = $prefix . ($next < 10 ? '0' : '') . $next;
-            while (isset($used_nums[$new_num])) {
+            $newNumber = $prefix . ($next < 10 ? '0' : '') . $next;
+            while (isset($usedNums[$newNumber])) {
                 $next++;
-                $new_num = $prefix . ($next < 10 ? '0' : '') . $next;
+                $newNumber = $prefix . ($next < 10 ? '0' : '') . $next;
             }
 
-            $guid_sql = $db->quote($guid);
-            $num_sql = $db->quote($new_num);
-            $db->write("UPDATE transactions SET num = {$num_sql} WHERE guid = {$guid_sql}");
+            $guidSql = $database->quote($guid);
+            $numberSql = $database->quote($newNumber);
+            $database->write("UPDATE transactions SET num = {$numberSql} WHERE guid = {$guidSql}");
 
             $last = $next;
-            $used_nums[$new_num] = $guid;
-            echo "UPDATE transactions SET num = {$num_sql} WHERE guid = {$guid_sql};\n";
+            $usedNums[$newNumber] = $guid;
+            echo "UPDATE transactions SET num = {$numberSql} WHERE guid = {$guidSql};\n";
         }
     }
 }

@@ -1,13 +1,15 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../Auth.php';
+use Puggan\GnuCashMatcher\Auth;
 
-$db = Auth::new_db();
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$database = Auth::newDatabase();
 
 $query = 'SELECT code, name FROM accounts WHERE code BETWEEN 40 AND 99';
 /** @var string[] $groupNames */
-$groupNames = $db->read($query, 'code', 'name');
+$groupNames = $database->read($query, 'code', 'name');
 $from = date('Y-m-d', strtotime($_GET['from'] ?? '' ?: '2017-01-01'));
 
 $query = <<<SQL_BLOCK
@@ -22,30 +24,30 @@ AND accounts.code BETWEEN 4000 AND 4998
 GROUP BY 1
 SQL_BLOCK;
 /** @var string[] $groupValues */
-$groupValues = $db->read($query, 'code_group', 'v');
+$groupValues = $database->read($query, 'code_group', 'v');
 
-$sum = array_sum($groupValues);
+$total = array_sum($groupValues);
 
-$trs = [];
-$pie = [];
+$transactions = [];
+$pieValues = [];
 foreach ($groupValues as $group => $value) {
-    $value_text = number_format($value, 2, '.', ' ') . ' kr';
+    $valueText = number_format($value, 2, '.', ' ') . ' kr';
     $data = ['short' => $group, 'long' => $groupNames[$group] ?? 'Group ' . $group, 'procent' => round(
-            100 * $value / $sum
-        ) . ' %', 'value_text' => $value_text];
-    $trs[] = implode('</td><td>', array_map('htmlentities', $data));
+            100 * $value / $total
+        ) . ' %', 'value_text' => $valueText];
+    $transactions[] = implode('</td><td>', array_map('htmlentities', $data));
     $data['value'] = $value;
-    $pie[] = $data;
+    $pieValues[] = $data;
 }
-$trs = '<tr><td>' . implode("</td></tr>\n\t\t\t\t<tr><td>", $trs) . '</td></tr>';
-$json_data = json_encode($pie, JSON_THROW_ON_ERROR, 512);
+$transactions = '<tr><td>' . implode("</td></tr>\n\t\t\t\t<tr><td>", $transactions) . '</td></tr>';
+$jsonData = json_encode($pieValues, JSON_THROW_ON_ERROR, 512);
 echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Cost ditrubition 4x</title>
 		<script src="https://d3js.org/d3.v4.js"></script>
 		<script>
-			var dataset =; {$json_data};
+			var dataset = {$jsonData};
 			
 			window.addEventListener('DOMContentLoaded', function() {
 	
@@ -150,7 +152,7 @@ echo <<<HTML_BLOCK
 				</tr>
 			</thead>
 			<tbody>
-				{$trs}
+				{$transactions}
 			</tbody>
 		</table>
 	</body>

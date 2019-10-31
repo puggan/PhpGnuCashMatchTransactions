@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpMultipleClassesDeclarationsInOneFile */
+<?php /** @noinspection PhpPropertyNamingConventionInspection */
+/** @noinspection PhpMultipleClassesDeclarationsInOneFile */
 /** @noinspection PhpIllegalPsrClassPathInspection */
 declare(strict_types=1);
 /** @noinspection PhpPropertyNamingConventionInspection */

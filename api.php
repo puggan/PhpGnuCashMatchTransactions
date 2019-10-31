@@ -1,9 +1,14 @@
-<?php /** @noinspection PhpIllegalPsrClassPathInspection */
+<?php /** @noinspection PhpVariableNamingConventionInspection */
+/** @noinspection PhpMethodNamingConventionInspection */
+/** @noinspection PhpIllegalPsrClassPathInspection */
 /** @noinspection AutoloadingIssuesInspection */
 /** @noinspection AutoloadingIssuesInspection */
 declare(strict_types=1);
 
-require_once __DIR__ . '/GnuCash.php';
+use Puggan\GnuCashMatcher\Auth;
+use Puggan\GnuCashMatcher\GnuCash;
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
@@ -20,8 +25,6 @@ set_error_handler(
         );
     }
 );
-
-require_once __DIR__ . '/Auth.php';
 
 /**
  * Class Index
@@ -596,7 +599,6 @@ class Index extends Auth
 
     /**
      * api call: appChangeTransactionDate
-     * @throws Exception
      */
     public function appChangeTransactionDate(): void
     {

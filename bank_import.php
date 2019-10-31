@@ -1,44 +1,43 @@
 <?php
 declare(strict_types=1);
 
+use Puggan\GnuCashMatcher\Auth;
 use Puggan\GnuCashMatcher\Models\BankTransaction;
 
-require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
-require_once __DIR__ . '/Models/BankTransaction.php';
 
-define('REGEXP_INT', '#^(0|-?[1-9][0-9]*)$#');
-define('REGEXP_DATE', '#^(20[0-9][0-9])-([0-1][0-9])-([0-3][0-9])$#');
-define('REGEXP_MONEY', "#^(-)?(0|[1-9][0-9]*)([ ,][0-9][0-9][0-9])*[,\\.]([0-9][0-9])$#");
-define('REGEXP_MONEY_SEK', "#^(-)?(0|[1-9][0-9]*)([ ][0-9][0-9][0-9])*([,\\.]([0-9][0-9]?))?$#");
+define('REGEXP_INT', '#^(0|-?[1-9]\d*)$#');
+define('REGEXP_DATE', '#^(20\d\d)-([0-1]\d)-([0-3]\d)$#');
+define('REGEXP_MONEY', "#^(-)?(0|[1-9]\d*)([ ,]\d\d\d)*[,\\.](\d\d)$#");
+define('REGEXP_MONEY_SEK', "#^(-)?(0|[1-9]\d*)([ ]\d\d\d)*([,\\.](\d\d?))?$#");
 
-$database = Auth::new_db();
+$database = Auth::newDatabase();
 
 if (!empty($_POST['data']) && !empty($_POST['account'])) {
     $okCount = 0;
-    $min_date = $_POST['min_date'] ?? '2016-09-01';
+    $minDate = $_POST['min_date'] ?? '2016-09-01';
 
     if ($_POST['import_type'] === 'seb') {
-        foreach (explode("\n", $_POST['data']) as $row_nr => $row) {
-            if (!($row = trim($row))) {
+        foreach (explode("\n", $_POST['data']) as $rowNr => $dbRow) {
+            if (!($dbRow = trim($dbRow))) {
                 continue;
             }
-            $cells = explode("\t", $row);
+            $cells = explode("\t", $dbRow);
             switch (count($cells)) {
                 case 6:
-                    if (trim($cells[0]) < $min_date) {
+                    if (trim($cells[0]) < $minDate) {
                         continue 2;
                     }
                     if (!preg_match(REGEXP_DATE, $cells[0])) {
-                        echo $row_nr . ": Bad date in 1st column '{$cells[0]}' @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad date in 1st column '{$cells[0]}' @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (!preg_match(REGEXP_DATE, $cells[1])) {
-                        echo $row_nr . ": Bad date in 2th column '{$cells[1]}' @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad date in 2th column '{$cells[1]}' @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (!preg_match(REGEXP_INT, $cells[2])) {
-                        echo $row_nr . ": Bad int in 3th column '{$cells[2]}' @ '{$row}'"; // no line break
+                        echo $rowNr . ": Bad int in 3th column '{$cells[2]}' @ '{$dbRow}'"; // no line break
                         $cells[2] = preg_replace('#\D+#', '', $cells[2]);
                         /** @noinspection NotOptimalIfConditionsInspection $cells[2] is overwritten since last if */
                         if (!preg_match(REGEXP_INT, $cells[2])) {
@@ -52,7 +51,7 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     } elseif (preg_match(REGEXP_MONEY_SEK, $cells[4])) {
                         $cells[4] = strtr($cells[4], [',' => '.', ' ' => '']) * 100;
                     } else {
-                        echo $row_nr . ": Bad amount in 2th last column '{$cells[4]}' @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad amount in 2th last column '{$cells[4]}' @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (preg_match(REGEXP_MONEY, $cells[5])) {
@@ -60,7 +59,7 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     } elseif (preg_match(REGEXP_MONEY_SEK, $cells[5])) {
                         $cells[5] = strtr($cells[5], [',' => '.', ' ' => '']) * 100;
                     } else {
-                        echo $row_nr . ": Bad amount in last column '{$cells[5]}' @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad amount in last column '{$cells[5]}' @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     $banktransaction = new BankTransaction();
@@ -78,39 +77,39 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     break;
 
                 default:
-                    echo $row_nr . ': Bad number of columns, found ' . count(
+                    echo $rowNr . ': Bad number of columns, found ' . count(
                             $cells
-                        ) . ", expected 6 @ '{$row}' <br />\n";
+                        ) . ", expected 6 @ '{$dbRow}' <br />\n";
                     break;
             }
         }
     } elseif ($_POST['import_type'] === 'swedbank') {
-        foreach (explode("\n", $_POST['data']) as $row_nr => $row) {
-            if (!($row = trim($row))) {
+        foreach (explode("\n", $_POST['data']) as $rowNr => $dbRow) {
+            if (!($dbRow = trim($dbRow))) {
                 continue;
             }
-            $cells = explode("\t", preg_replace('#  +#', "\t", $row));
+            $cells = explode("\t", preg_replace('#  +#', "\t", $dbRow));
             if (count($cells) === 1) {
-                $cells = explode(';', $row);
+                $cells = explode(';', $dbRow);
             }
             switch (count($cells)) {
                 case 9:
                     $bdate = '20' . $cells[4];
-                    if (trim($bdate) < $min_date) {
+                    if (trim($bdate) < $minDate) {
                         continue 2;
                     }
                     if (!preg_match(REGEXP_DATE, $bdate)) {
-                        echo $row_nr . ": Bad date in 4st column @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad date in 4st column @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
 
                     $vdate = '20' . $cells[5];
                     if (!preg_match(REGEXP_DATE, $vdate)) {
-                        echo $row_nr . ": Bad date in 5th column @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad date in 5th column @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (!preg_match(REGEXP_MONEY, $cells[8])) {
-                        echo $row_nr . ": Bad amount in 8th last column @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad amount in 8th last column @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
 
@@ -130,25 +129,25 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
 
                 case 8:
                     $bdate = '20' . $cells[1];
-                    if (trim($bdate) < $min_date) {
+                    if (trim($bdate) < $minDate) {
                         continue 2;
                     }
                     if (!preg_match(REGEXP_DATE, $bdate)) {
-                        echo $row_nr . ": Bad date in 4st column @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad date in 4st column @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
 
                     $vdate = '20' . $cells[2];
                     if (!preg_match(REGEXP_DATE, $vdate)) {
-                        echo $row_nr . ": Bad date in 5th column @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad date in 5th column @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (!preg_match(REGEXP_MONEY, $cells[6])) {
-                        echo $row_nr . ": Bad amount in column 7 @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad amount in column 7 @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (!preg_match(REGEXP_MONEY, $cells[7])) {
-                        echo $row_nr . ": Bad saldo in column 8 @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad saldo in column 8 @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
 
@@ -169,25 +168,25 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                 case 5:
                     // 0: vtext, 1: bdate, 2: vdate, 3: amount, 4: saldo.
                     $bdate = $cells[1];
-                    if (trim($bdate) < $min_date) {
+                    if (trim($bdate) < $minDate) {
                         continue 2;
                     }
                     if (!preg_match(REGEXP_DATE, $bdate)) {
-                        echo $row_nr . ": Bad b-date in column 1 @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad b-date in column 1 @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
 
                     $vdate = $cells[2];
                     if (!preg_match(REGEXP_DATE, $vdate)) {
-                        echo $row_nr . ": Bad v-date in column 2 @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad v-date in column 2 @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (!preg_match(REGEXP_MONEY, $cells[3])) {
-                        echo $row_nr . ": Bad amount in column 3 @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad amount in column 3 @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
                     if (!preg_match(REGEXP_MONEY, $cells[4])) {
-                        echo $row_nr . ": Bad saldo in column 4 @ '{$row}' <br />\n";
+                        echo $rowNr . ": Bad saldo in column 4 @ '{$dbRow}' <br />\n";
                         continue 2;
                     }
 
@@ -206,9 +205,9 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
                     break;
 
                 default:
-                    echo $row_nr . ': Bad number of columns, found ' . count(
+                    echo $rowNr . ': Bad number of columns, found ' . count(
                             $cells
-                        ) . ", expected 9 @ '{$row}' <br />\n";
+                        ) . ", expected 9 @ '{$dbRow}' <br />\n";
                     break;
             }
         }
@@ -219,21 +218,21 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
     }
     echo '<p><a href="./bank.php">&laquo; Account view</a></p>';
 } else {
-    $account_names = $database->read(
+    $accountNames = $database->read(
         "SELECT code, accounts.name FROM accounts WHERE LENGTH(code) = 4 AND code LIKE '12%' ORDER BY code",
         'code',
         'name'
     );
 
-    $account_options = [];
-    foreach ($account_names as $account_code => $account_name) {
-        $account_options[$account_code] = "<option value=\"{$account_code}\">" .
-            htmlentities($account_name, ENT_QUOTES) .
+    $accountOptions = [];
+    foreach ($accountNames as $accountCode => $accountName) {
+        $accountOptions[$accountCode] = "<option value=\"{$accountCode}\">" .
+            htmlentities($accountName, ENT_QUOTES) .
             '</option>';
     }
-    $account_options = implode(PHP_EOL, $account_options);
+    $accountOptions = implode(PHP_EOL, $accountOptions);
 
-    $min_date = $_POST['min_date'] ?? date('Y-m-d', strtotime('-6 months'));
+    $minDate = $_POST['min_date'] ?? date('Y-m-d', strtotime('-6 months'));
 
     echo <<<HTML_BLOCK
 <html>
@@ -254,12 +253,12 @@ if (!empty($_POST['data']) && !empty($_POST['account'])) {
 
 				<label>
 					<span>Account</span><br />
-					<select name="account"><option value="">-- Select account --</option>{$account_options}</select>
+					<select name="account"><option value="">-- Select account --</option>{$accountOptions}</select>
 				</label><br />
 
 				<label>
 					<span>Date Filter (Only included rows newer then)</span><br />
-					<input type="date" name="min_date" value="{$min_date}"/>
+					<input type="date" name="min_date" value="{$minDate}"/>
 				</label><br />
 
 				<label>

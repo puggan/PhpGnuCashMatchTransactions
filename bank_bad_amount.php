@@ -1,16 +1,17 @@
 <?php
 declare(strict_types=1);
 
+use Puggan\GnuCashMatcher\Auth;
+use Puggan\GnuCashMatcher\DB;
+use Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingAcconts;
+use Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingSplits;
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once __DIR__ . '/Auth.php';
-require_once __DIR__ . '/GnuCash.php';
 require_once __DIR__ . '/token_auth.php';
-require_once __DIR__ . '/Models/Combined/BankTransactionMatchingAcconts.php';
-require_once __DIR__ . '/Models/Combined/BankTransactionMatchingSplits.php';
 
-$database = Auth::new_db();
+$database = Auth::newDatabase();
 
 $database->write(
     'UPDATE bank_transactions LEFT JOIN splits ON (splits.guid = bank_transactions.bank_tid) SET bank_transactions.bank_tid = NULL WHERE splits.guid IS NULL AND bank_transactions.bank_tid IS NOT NULL'
@@ -140,7 +141,7 @@ if ($editRow) {
         }
 
         if ($date && $amount && $fromAccount && $toAccount && $text) {
-            $gnuCash = Auth::new_gnucash();
+            $gnuCash = Auth::newGnuCash();
 
             if ($gnuCash->GUIDExists($fromAccount) && $gnuCash->GUIDExists($toAccount)) {
                 $error = $gnuCash->createTransaction($toAccount, $fromAccount, $amount, $text, $date, '');
@@ -217,9 +218,9 @@ WHERE bdate >= '2016-09-01'
 	AND accounts.code = {$selectedAccount}
 SQL_BLOCK;
 
-$account_row = $database->get($query);
-/** @var \PhpDoc\table_db_result_account_name_rows_bad_amount $account_row_sql */
-$account_row_sql = (object) array_map([$database, 'quote'], $account_row);
+$accountRow = $database->get($query);
+/** @var \PhpDoc\table_db_result_account_name_rows_bad_amount $accountRowSql */
+$accountRowSql = (object) array_map([$database, 'quote'], $accountRow);
 
 $badAmountQuery = <<<SQL_BLOCK
 SELECT
@@ -238,7 +239,7 @@ FROM splits
 	INNER JOIN splits AS s2 ON (s2.tx_guid = transactions.guid AND s2.guid <> splits.guid)
 	INNER JOIN accounts AS al ON (al.guid = s2.account_guid)
 WHERE bank_transactions.amount * splits.value_denom <> splits.value_num
-	AND splits.account_guid = {$account_row_sql->account_guid}
+	AND splits.account_guid = {$accountRowSql->account_guid}
 GROUP BY bank_transactions.bank_tid
 SQL_BLOCK;
 
@@ -283,42 +284,42 @@ echo <<<HTML_BLOCK
 
 HTML_BLOCK;
 
-$current_account_option = "<option value=\"{$selectedAccount}\">{$accountNamesHtml[$selectedAccount]}</option>";
+$accountOption = "<option value=\"{$selectedAccount}\">{$accountNamesHtml[$selectedAccount]}</option>";
 
 $isOdd = false;
 
-/** @var \PhpDoc\table_db_result_missing_splits $bt_row */
-foreach ($database->objects($badAmountQuery) as $bt_row) {
+/** @var \PhpDoc\table_db_result_missing_splits $btRow */
+foreach ($database->objects($badAmountQuery) as $btRow) {
     echo '<pre>';
-    print_r($bt_row);
+    print_r($btRow);
     echo '</pre>';
 
     continue;
     /** @noinspection PhpUnreachableStatementInspection TODO replace debug code with real code */
-    if ($bt_row->amount > 0) {
-        $from_option = $options;
-        $to_option = $current_account_option;
-        $amount = $bt_row->amount;
+    if ($btRow->amount > 0) {
+        $fromOption = $options;
+        $toOption = $accountOption;
+        $amount = $btRow->amount;
     } else {
-        $from_option = $current_account_option;
-        $to_option = $options;
-        $amount = -$bt_row->amount;
+        $fromOption = $accountOption;
+        $toOption = $options;
+        $amount = -$btRow->amount;
     }
 
-    $text = htmlentities($bt_row->vtext);
-    $class = (($isOdd = !$isOdd) ? 'odd' : 'even') . ' ' . ($bt_row->amount > 0 ? 'inc' : 'dec');
+    $text = htmlentities($btRow->vtext);
+    $class = (($isOdd = !$isOdd) ? 'odd' : 'even') . ' ' . ($btRow->amount > 0 ? 'inc' : 'dec');
 
-    if (preg_match('#/(\d\d-\d\d-\d\d)$#', $text, $m)) {
+    if (preg_match('#/(\d\d-\d\d-\d\d)$#', $text, $matches)) {
         $text = trim(substr($text, 0, -9));
-        $date = 20 . $m[1];
+        $date = 20 . $matches[1];
     } else {
-        $date = $bt_row->bdate;
+        $date = $btRow->bdate;
     }
 
     echo <<<HTML_BLOCK
-		<form method="post" action="?account={$selectedAccount}{$skipUrlHtml}&amp;row={$bt_row->bank_t_row}">
+		<form method="post" action="?account={$selectedAccount}{$skipUrlHtml}&amp;row={$btRow->bank_t_row}">
 			<fieldset class="{$class}">
-				<legend>{$bt_row->amount} kr @ {$bt_row->bdate}</legend>
+				<legend>{$btRow->amount} kr @ {$btRow->bdate}</legend>
 
 				<label>
 					<span>Date:</span>
@@ -333,14 +334,14 @@ foreach ($database->objects($badAmountQuery) as $bt_row) {
 				<label>
 					<span>From:</span>
 					<select name="from">
-						{$from_option}
+						{$fromOption}
 					</select>
 				</label>
 
 				<label>
 					<span>To:</span>
 					<select name="to">
-						{$to_option}
+						{$toOption}
 					</select>
 				</label>
 
@@ -372,7 +373,7 @@ FROM bank_transactions
 	LEFT JOIN bank_transactions AS used ON (used.bank_tid = splits.guid)
 	LEFT JOIN splits AS split2 ON (split2.tx_guid = splits.tx_guid AND split2.value_num = -splits.value_num)
 	LEFT JOIN accounts AS account2 ON (account2.guid = split2.account_guid)
-WHERE bank_transactions.bank_t_row = {$bt_row->bank_t_row}
+WHERE bank_transactions.bank_t_row = {$btRow->bank_t_row}
 	AND used.bank_t_row IS NULL
 	AND transactions.post_date BETWEEN bank_transactions.bdate - INTERVAL 1 WEEK AND bank_transactions.bdate + INTERVAL 1 WEEK
 	AND splits.value_num - bank_transactions.amount * splits.value_denom BETWEEN -100 AND 100
@@ -388,9 +389,9 @@ ORDER BY ABS(splits.value_num - bank_transactions.amount * splits.value_denom),
 SQL_BLOCK;
 
     $count = 0;
-    /** @var \Puggan\GnuCashMatcher\DB $database why is this row needed? */
-    /** @var \Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingSplits $match_row */
-    foreach ($database->objects($query) as $match_row) {
+    /** @var DB $database why is this row needed? */
+    /** @var BankTransactionMatchingSplits $matchRow */
+    foreach ($database->objects($query) as $matchRow) {
         if (!$count++) {
             echo <<<HTML_BLOCK
 						<h3>Match sugestions (TR)</h3>
@@ -398,12 +399,12 @@ SQL_BLOCK;
 						
 HTML_BLOCK;
         }
-        $description = htmlentities($match_row->description);
-        $url = "?account={$selectedAccount}&amp;row={$bt_row->bank_t_row}&amp;guid={$match_row->guid}";
-        $date = substr($match_row->date, 0, 10);
-        $other_account = $match_row->other_account ? ' (' . htmlentities($match_row->other_account) . ')' : '';
+        $description = htmlentities($matchRow->description);
+        $linkUrl = "?account={$selectedAccount}&amp;row={$btRow->bank_t_row}&amp;guid={$matchRow->guid}";
+        $date = substr($matchRow->date, 0, 10);
+        $otherAccount = $matchRow->other_account ? ' (' . htmlentities($matchRow->other_account) . ')' : '';
         echo <<<HTML_BLOCK
-						<li><a href="{$url}">{$match_row->value} @ {$date}: {$description}</a>{$other_account}</li>
+						<li><a href="{$linkUrl}">{$matchRow->value} @ {$date}: {$description}</a>{$otherAccount}</li>
 
 HTML_BLOCK;
     }
@@ -434,18 +435,18 @@ FROM bank_transactions AS t1
 	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
 	INNER JOIN splits AS s2 ON (s2.tx_guid = transactions.guid AND s2.guid <> splits.guid)
 	INNER JOIN accounts ON (accounts.guid = s2.account_guid)
-WHERE t1.bank_t_row = {$bt_row->bank_t_row}
+WHERE t1.bank_t_row = {$btRow->bank_t_row}
 GROUP BY accounts.guid
 ORDER BY
-	IF({$bt_row->amount} BETWEEN MIN(t2.amount) AND MAX(t2.amount), 0, 1),
+	IF({$btRow->amount} BETWEEN MIN(t2.amount) AND MAX(t2.amount), 0, 1),
 	COUNT(t2.amount) DESC,
 	MAX(DATE(transactions.post_date)) DESC
 SQL_BLOCK;
 
     $count = 0;
 
-    /** @var \Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingAcconts $match_row */
-    foreach ($database->objects($query) as $match_row) {
+    /** @var BankTransactionMatchingAcconts $match_row */
+    foreach ($database->objects($query) as $matchRow) {
         if (!$count++) {
             echo <<<HTML_BLOCK
 						<h3>Match sugestions (Text)</h3>
@@ -453,15 +454,15 @@ SQL_BLOCK;
 						
 HTML_BLOCK;
         }
-        $other_account_name = htmlentities($match_row->name);
-        if ($match_row->connections > 1) {
+        $otherAccountName = htmlentities($matchRow->name);
+        if ($matchRow->connections > 1) {
             echo <<<HTML_BLOCK
-						<li onclick="setAccount(this, '{$match_row->code}')">{$other_account_name}, {$match_row->connections} connections, amount in range {$match_row->amount_from} - {$match_row->amount_to}, dates in range {$match_row->date_from} - {$match_row->date_to}</li>
+						<li onclick="setAccount(this, '{$matchRow->code}')">{$otherAccountName}, {$matchRow->connections} connections, amount in range {$matchRow->amount_from} - {$matchRow->amount_to}, dates in range {$matchRow->date_from} - {$matchRow->date_to}</li>
 
 HTML_BLOCK;
         } else {
             echo <<<HTML_BLOCK
-						<li onclick="setAccount(this, '{$match_row->code}')">{$other_account_name}, {$match_row->connections} connections, amount {$match_row->amount_from}, date {$match_row->date_from}</li>
+						<li onclick="setAccount(this, '{$matchRow->code}')">{$otherAccountName}, {$matchRow->connections} connections, amount {$matchRow->amount_from}, date {$matchRow->date_from}</li>
 
 HTML_BLOCK;
         }

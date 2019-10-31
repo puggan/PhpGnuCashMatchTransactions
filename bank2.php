@@ -20,14 +20,14 @@ if (empty($accounts[$accountCode])) {
 }
 
 ksort($accounts, SORT_STRING);
-$selectedAccountHtml = htmlentities($accounts[$accountCode], ENT_QUOTES);
+$accountHtml = htmlentities($accounts[$accountCode], ENT_QUOTES);
 $accountsJson = json_encode(
     $accounts,
     JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE + JSON_FORCE_OBJECT,
     512
 );
 $rowsJson = json_encode(
-    $bankI->account_cache($accountCode),
+    $bankI->accountCache($accountCode),
     JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT + JSON_UNESCAPED_UNICODE,
     512
 );
@@ -35,7 +35,7 @@ $rowsJson = json_encode(
 echo <<<HTML_BLOCK
 <html>
 	<head>
-		<title>Unmatched transactions of account: {$selectedAccountHtml}</title>
+		<title>Unmatched transactions of account: {$accountHtml}</title>
 		<link rel="stylesheet" href="lib/chosen/chosen.css" />
 		<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" />
 		<style type="text/css">
@@ -62,7 +62,7 @@ echo <<<HTML_BLOCK
 		<script type="text/javascript" src="bank2.js"></script>
 	</head>
 	<body>
-		<h1>Unmatched transactions of account: {$selectedAccountHtml}</h1>
+		<h1>Unmatched transactions of account: {$accountHtml}</h1>
 		<ul id="main_list">
 		
 		</ul>

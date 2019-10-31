@@ -7,7 +7,9 @@ declare(strict_types=1);
  * Time: 18:54
  */
 
-require_once(__DIR__ . '/bank_funk.php');
+use Puggan\GnuCashMatcher\Auth;
+
+require_once __DIR__ . '/bank_funk.php';
 $bankI = new Bank_interface();
 
 // TODO replace all $bi->db() with function calls
@@ -28,7 +30,7 @@ if (empty($data->action)) {
     error('no action');
 }
 
-api($data->action, $data);
+apiCall($data->action, $data);
 
 echo json_encode(['ok' => true, 'debug' => ['data' => $_POST]], JSON_THROW_ON_ERROR, 512);
 die();
@@ -38,12 +40,12 @@ die();
  * @param mixed $data
  * @return bool
  */
-function api($action, $data)
+function apiCall($action, $data)
 {
     global $bankI;
 
     /** @var string[] $accountIds */
-    $accountIds = $bankI->db()->read(
+    $accountIds = $bankI->database()->read(
         'SELECT code, guid FROM `accounts` WHERE LENGTH(code) >= 4 ORDER BY code',
         'code',
         'guid'
@@ -70,7 +72,7 @@ function api($action, $data)
                     error('no text');
                 }
 
-                $dbRow = $bankI->db()->object('SELECT * FROM bank_transactions WHERE bank_t_row = ' . (int) $data->row);
+                $dbRow = $bankI->database()->object('SELECT * FROM bank_transactions WHERE bank_t_row = ' . (int) $data->row);
 
                 if (($data->from === $dbRow->account) + ($data->to === $dbRow->account) !== 1) {
                     error('Account missmatch');
@@ -91,7 +93,7 @@ function api($action, $data)
                     error('invalid to account');
                 }
 
-                $gnuCash = Auth::new_gnucash();
+                $gnuCash = Auth::newGnuCash();
 
                 if (!$gnuCash->GUIDExists($accountIds[$data->from])) {
                     error('missing from account');
@@ -113,16 +115,16 @@ function api($action, $data)
                     error($error);
                 }
 
-                $txGuidSql = $bankI->db()->quote($gnuCash->lastTxGUID);
-                $accountGuidSql = $bankI->db()->quote($accountIds[$dbRow->account]);
+                $txGuidSql = $bankI->database()->quote($gnuCash->lastTxGUID);
+                $accountGuidSql = $bankI->database()->quote($accountIds[$dbRow->account]);
                 $query = "SELECT guid FROM splits WHERE tx_guid = {$txGuidSql} AND account_guid = {$accountGuidSql}";
                 /** @var string[] $matchingSplits */
-                $matchingSplits = $bankI->db()->read($query, null, 'guid');
+                $matchingSplits = $bankI->database()->read($query, null, 'guid');
                 if (!count($matchingSplits)) {
                     error('split not added');
                 }
                 $newGuid = $matchingSplits[0];
-                return api('connect', (object) ['row' => $data->row, 'guid' => $newGuid]);
+                return apiCall('connect', (object) ['row' => $data->row, 'guid' => $newGuid]);
             }
             break;
 
@@ -134,9 +136,9 @@ function api($action, $data)
                 if (empty($data->guid)) {
                     error('no guid');
                 }
-                $newGuidSql = $bankI->db()->quote($data->guid);
+                $newGuidSql = $bankI->database()->quote($data->guid);
                 $query = "UPDATE bank_transactions SET bank_tid = {$newGuidSql} WHERE bank_tid IS NULL AND bank_t_row = " . (int) $data->row;
-                if (!$bankI->db()->update($query)) {
+                if (!$bankI->database()->update($query)) {
                     error('connecting failed');
                 }
                 return true;

@@ -1,15 +1,16 @@
 <?php
+declare(strict_types=1);
+
+use Puggan\GnuCashMatcher\Auth;
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once __DIR__ . '/Auth.php';
-require_once __DIR__ . '/GnuCash.php';
 require_once __DIR__ . '/token_auth.php';
 
-$db = Auth::new_db();
+$database = Auth::newDatabase();
 
-$json_options = 0
+$jsonOptions = 0
     // + JSON_HEX_QUOT
     // + JSON_HEX_TAG
     // + JSON_HEX_AMP
@@ -71,28 +72,28 @@ ORDER BY transactions.post_date DESC, accounts.code, transactions.description
 SQL_BLOCK;
 
 $count = 0;
-$day_count = 0;
-$last_day = null;
+$dayCount = 0;
+$lastDay = null;
 
 /** @var \PhpDoc\table_db_result_row_odd_match $match_row */
-foreach ($db->objects($query) as $row) {
-    $row->day = substr($row->post_date, 0, 10);
-    $row->value = round($row->value_num / $row->value_denom, 2);
+foreach ($database->objects($query) as $dbRow) {
+    $dbRow->day = substr($dbRow->post_date, 0, 10);
+    $dbRow->value = round($dbRow->value_num / $dbRow->value_denom, 2);
 
-    if ($row->day != $last_day) {
-        if ($day_count) {
+    if ($dbRow->day !== $lastDay) {
+        if ($dayCount) {
             echo <<<HTML_BLOCK
 				</tbody>
 			</table>
 						
 HTML_BLOCK;
         }
-        $day_count = 0;
-        $last_day = $row->day;
-        $weekday = date("l", strtotime($row->day));
+        $dayCount = 0;
+        $lastDay = $dbRow->day;
+        $weekday = date('l', strtotime($dbRow->day));
         echo <<<HTML_BLOCK
 			<table>
-				<caption><h2>{$last_day}, {$weekday}</h2></caption>
+				<caption><h2>{$lastDay}, {$weekday}</h2></caption>
 				<colgroup>
 					<col style="width: 100px;" />
 					<col style="width: 200px;" />
@@ -107,17 +108,17 @@ HTML_BLOCK;
 HTML_BLOCK;
     }
 
-    $day_count++;
-    $json = json_encode($row, $json_options);
+    $dayCount++;
+    $json = json_encode($dbRow, $jsonOptions);
     $htmljson = htmlentities($json);
-    $htmlrow = (object) array_map('htmlentities', (array) $row);
+    $htmlrow = (object) array_map('htmlentities', (array) $dbRow);
     echo <<<HTML_BLOCK
 					<tr><td>{$htmlrow->value} kr</td><td>{$htmlrow->name}</td><td>{$htmlrow->description}</td><td>{$htmlrow->name2}</td></tr>
 
 HTML_BLOCK;
 }
 
-if ($day_count) {
+if ($dayCount) {
     echo <<<HTML_BLOCK
 				</tbody>
 			</table>

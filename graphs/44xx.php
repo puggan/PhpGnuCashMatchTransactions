@@ -1,9 +1,11 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../Auth.php';
+use Puggan\GnuCashMatcher\Auth;
 
-$database = Auth::new_db();
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$database = Auth::newDatabase();
 
 $query = 'SELECT code, name FROM accounts WHERE code BETWEEN 4400 AND 4499';
 /** @var string[] $groupNames */
@@ -25,21 +27,21 @@ $groupValues = $database->read($query, 'code_group', 'v');
 $transactions = [];
 $pieValues = [];
 foreach ($groupValues as $group => $value) {
-    $value_text = number_format($value, 2, '.', ' ') . ' kr';
-    $data = ['short' => $group, 'long' => $groupNames[$group] ?? 'Group ' . $group, 'value_text' => $value_text];
+    $valueText = number_format($value, 2, '.', ' ') . ' kr';
+    $data = ['short' => $group, 'long' => $groupNames[$group] ?? 'Group ' . $group, 'value_text' => $valueText];
     $transactions[] = implode('</td><td>', array_map('htmlentities', $data));
     $data['value'] = $value;
     $pieValues[] = $data;
 }
 $transactions = '<tr><td>' . implode("</td></tr>\n\t\t\t\t<tr><td>", $transactions) . '</td></tr>';
-$json_data = json_encode($pieValues, JSON_THROW_ON_ERROR, 512);
+$jsonData = json_encode($pieValues, JSON_THROW_ON_ERROR, 512);
 echo <<<HTML_BLOCK
 <html>
 	<head>
 		<title>Cost ditrubition 44xx</title>
 		<script src="https://d3js.org/d3.v4.js"></script>
 		<script>
-			var dataset =; {$json_data};
+			var dataset = {$jsonData};
 			
 			window.addEventListener('DOMContentLoaded', function() {
 	

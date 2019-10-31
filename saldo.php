@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use Puggan\GnuCashMatcher\Auth;
+
 $query = <<<SQL_BLOCK
 SELECT
    DATE(transactions.post_date) AS d,
@@ -12,10 +14,9 @@ WHERE accounts.code LIKE '1%'
 GROUP BY 1
 SQL_BLOCK;
 
-require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
 
-$database = Auth::new_db();
+$database = Auth::newDatabase();
 $total = 0;
 $transactions = [];
 

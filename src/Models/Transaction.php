@@ -5,6 +5,8 @@ require_once __DIR__ . '/Interfaces/Split.php';
 
 namespace Puggan\GnuCashMatcher\Models;
 
+use Puggan\GnuCashMatcher\DB;
+
 /**
  * Class Transactions
  * @package Models
@@ -12,12 +14,12 @@ namespace Puggan\GnuCashMatcher\Models;
 class Transaction implements Interfaces\Transactions
 {
     /**
-     * @param \Puggan\GnuCashMatcher\DB $db
+     * @param DB $db
      * @param string $guid
      *
      * @return self|null
      */
-    public static function find(\Puggan\GnuCashMatcher\DB $db, string $guid): ?self
+    public static function find(DB $db, string $guid): ?self
     {
         $query = 'SELECT * FROM transactions WHERE guid = ' . $db->quote($guid);
 

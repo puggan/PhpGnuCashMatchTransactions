@@ -5,76 +5,75 @@
 /** @noinspection AutoloadingIssuesInspection */
 declare(strict_types=1);
 
+use Puggan\GnuCashMatcher\Auth;
+use Puggan\GnuCashMatcher\GnuCash;
 use Puggan\GnuCashMatcher\Models\Account;
 use Puggan\GnuCashMatcher\Models\BankTransaction;
 
-require_once __DIR__ . '/Auth.php';
-require_once __DIR__ . '/GnuCash.php';
-require_once __DIR__ . '/Models/Account.php';
-require_once __DIR__ . '/Models/BankTransaction.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 /**
  * Class Bank_interface
  *
- * @property \Puggan\GnuCashMatcher\DB $db
- * @property GnuCash gc
+ * @property \Puggan\GnuCashMatcher\DB $database
+ * @property GnuCash $gnuCash
  */
 class Bank_interface
 {
-    private $db;
-    private $gc;
+    private $database;
+    private $gnuCash;
 
     /**
      * Bank_interface constructor.
      */
     public function __construct()
     {
-        $this->db = Auth::new_db();
-        $this->gc = Auth::new_gnucash();
+        $this->database = Auth::newDatabase();
+        $this->gnuCash = Auth::newGnuCash();
     }
 
     /**
      * @return \Puggan\GnuCashMatcher\DB
      */
-    public function db(): \Puggan\GnuCashMatcher\DB
+    public function database(): \Puggan\GnuCashMatcher\DB
     {
-        return $this->db;
+        return $this->database;
     }
 
     /**
-     * @param int $row_nr
+     * @param int $rowNr
      * @param string $guid
      *
      * @return bool
      * @throws Exception
      */
-    public function connect_bank_row($row_nr, $guid): bool
+    public function connectBankRow($rowNr, $guid): bool
     {
-        $bank_row = $this->get_bank_row($row_nr);
-        if (!$bank_row) {
+        $bankRow = $this->bankRow($rowNr);
+        if (!$bankRow) {
             throw new \RuntimeException('row dosn\'t exisists');
         }
-        if ($bank_row->bank_tid) {
+        if ($bankRow->bank_tid) {
             throw new \RuntimeException('row allredy connected');
         }
 
-        $guid = $this->db->quote($guid);
-        $row_nr = (int) $row_nr;
-        $query = "UPDATE bank_transactions SET bank_tid = {$guid} WHERE bank_tid IS NULL AND bank_t_row = {$row_nr}";
-        return $this->db->write($query);
+        $guid = $this->database->quote($guid);
+        $rowNr = (int) $rowNr;
+        $query = "UPDATE bank_transactions SET bank_tid = {$guid} WHERE bank_tid IS NULL AND bank_t_row = {$rowNr}";
+        return $this->database->write($query);
     }
 
     /**
-     * @param int $row_nr
+     * @param int $rowNr
      *
      * @return BankTransaction
      */
-    public function get_bank_row($row_nr): BankTransaction
+    public function bankRow($rowNr): BankTransaction
     {
-        $row_nr = (int) $row_nr;
-        $query = "SELECT * FROM bank_transactions WHERE bank_t_row = {$row_nr}";
+        $rowNr = (int) $rowNr;
+        $query = "SELECT * FROM bank_transactions WHERE bank_t_row = {$rowNr}";
         /** @var BankTransaction $transaction */
-        $transaction = $this->db->object($query, null, BankTransaction::class);
+        $transaction = $this->database->object($query, null, BankTransaction::class);
         return $transaction;
     }
 
@@ -90,7 +89,7 @@ class Bank_interface
      * @throws Exception
      * @noinspection PhpTooManyParametersInspection TODO move to constructor
      */
-    public function add_from_bank_row($row_nr, $date, $amount, $from, $to, $text): bool
+    public function addFromBankRow($row_nr, $date, $amount, $from, $to, $text): bool
     {
         if (!$row_nr) {
             throw new \RuntimeException('invalid parameters row_nr to add_from_bank_row()');
@@ -111,55 +110,55 @@ class Bank_interface
             throw new \RuntimeException('invalid parameters to add_from_bank_row()');
         }
 
-        if (!$this->gc->GUIDExists($from)) {
+        if (!$this->gnuCash->GUIDExists($from)) {
             throw new \RuntimeException('from account dosn\'t exists');
         }
-        if (!$this->gc->GUIDExists($to)) {
+        if (!$this->gnuCash->GUIDExists($to)) {
             throw new \RuntimeException('to account dosn\'t exists');
         }
 
-        $bank_row = $this->get_bank_row($row_nr);
-        if (!$bank_row) {
+        $bankRow = $this->bankRow($row_nr);
+        if (!$bankRow) {
             throw new \RuntimeException('row dosn\'t exisists');
         }
-        if ($bank_row->bank_tid) {
+        if ($bankRow->bank_tid) {
             throw new \RuntimeException('row allready connected');
         }
 
-        $error = $this->gc->createTransaction($to, $from, $amount, $text, $date, '');
+        $error = $this->gnuCash->createTransaction($to, $from, $amount, $text, $date, '');
         if ($error) {
             throw new \RuntimeException($error);
         }
 
-        if (!$this->gc->lastTxGUID) {
+        if (!$this->gnuCash->lastTxGUID) {
             throw new \RuntimeException('No new guid generated');
         }
 
-        $splits = $this->tx_to_account_splits($this->gc->lastTxGUID);
+        $splits = $this->tx2accountSplits($this->gnuCash->lastTxGUID);
 
-        if (empty($splits[$bank_row->account])) {
+        if (empty($splits[$bankRow->account])) {
             throw new \RuntimeException('account not found on tx');
         }
 
-        return $this->connect_bank_row($row_nr, $splits[$bank_row->account]);
+        return $this->connectBankRow($row_nr, $splits[$bankRow->account]);
     }
 
     /**
-     * @param string $tx
+     * @param string $transaction
      *
      * @return string[] account.code -> split.guid
      * @throws Exception
      */
-    public function tx_to_account_splits($tx): array
+    public function tx2accountSplits($transaction): array
     {
-        $tx = $this->db->quote($tx);
-        $query = "SELECT accounts.code, splits.guid FROM splits INNER JOIN accounts ON (accounts.guid = splits.account_guid) WHERE tx_guid = {$tx}";
-        $splits = $this->db->read($query);
-        $split_by_account = array_column($splits, 'guid', 'code');
-        if (count($split_by_account) !== count($splits)) {
+        $transaction = $this->database->quote($transaction);
+        $query = "SELECT accounts.code, splits.guid FROM splits INNER JOIN accounts ON (accounts.guid = splits.account_guid) WHERE tx_guid = {$transaction}";
+        $splits = $this->database->read($query);
+        $splitByAccount = array_column($splits, 'guid', 'code');
+        if (count($splitByAccount) !== count($splits)) {
             throw new \RuntimeException('TX splits are not account uniqe');
         }
-        return $split_by_account;
+        return $splitByAccount;
     }
 
     /**
@@ -167,32 +166,32 @@ class Bank_interface
      */
     public function accounts(): array
     {
-        return Account::codeNames($this->db);
+        return Account::codeNames($this->database);
     }
 
     /**
-     * @param int $account_code
+     * @param int $accountCode
      *
      * @return \PhpDoc\bank_transactions_cache[]
      * @throws \RuntimeException
      */
-    public function account_cache($account_code): array
+    public function accountCache($accountCode): array
     {
         $list = [];
-        $account_code = (int) $account_code;
+        $accountCode = (int) $accountCode;
         $query = <<<SQL_BLOCK
 SELECT bank_transactions.bank_t_row, bank_transactions_cache.md5, bank_transactions_cache.data
 FROM bank_transactions LEFT JOIN bank_transactions_cache USING (bank_t_row)
-WHERE account = {$account_code} AND bank_tid IS NULL AND bdate >= '2016-09-01'
+WHERE account = {$accountCode} AND bank_tid IS NULL AND bdate >= '2016-09-01'
 ORDER BY bdate DESC, bank_t_row DESC
 SQL_BLOCK;
-        foreach ($this->db->g_objects($query) as $row) {
-            if (!$row->data) {
-                $bank_row = $this->get_bank_row($row->bank_t_row);
-                $bank_row->save_cache($this->db);
-                $row = $this->db->object($query . ' AND bank_t_row = ' . $row->bank_t_row);
+        foreach ($this->database->g_objects($query) as $dbRow) {
+            if (!$dbRow->data) {
+                $bankRow = $this->bankRow($dbRow->bank_t_row);
+                $bankRow->saveCache($this->database);
+                $dbRow = $this->database->object($query . ' AND bank_t_row = ' . $dbRow->bank_t_row);
             }
-            $list[] = json_decode($row->data, true, 512, JSON_THROW_ON_ERROR);
+            $list[] = json_decode($dbRow->data, true, 512, JSON_THROW_ON_ERROR);
         }
         return $list;
     }

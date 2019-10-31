@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 
+use Puggan\GnuCashMatcher\Auth;
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once __DIR__ . '/Auth.php';
-require_once __DIR__ . '/GnuCash.php';
 require_once __DIR__ . '/token_auth.php';
 
-$db = Auth::new_db();
+$database = Auth::newDatabase();
 
-$json_options = 0
+$jsonOptions = 0
     // + JSON_HEX_QUOT
     // + JSON_HEX_TAG
     // + JSON_HEX_AMP
@@ -59,7 +59,7 @@ SQL_BLOCK;
 
 $count = 0;
 
-foreach ($db->read($query, null, 'matchtext') as $matchtext) {
+foreach ($database->read($query, null, 'matchtext') as $matchtext) {
     if (!$count++) {
         echo <<<HTML_BLOCK
 						<ul>
@@ -75,7 +75,7 @@ HTML_BLOCK;
 
 HTML_BLOCK;
 
-    $safe_text = $db->quote($matchtext);
+    $safeText = $database->quote($matchtext);
     $query = <<<SQL_BLOCK
 SELECT
 	accounts.code,
@@ -90,16 +90,16 @@ FROM bank_transactions
 	INNER JOIN transactions ON (transactions.guid = splits.tx_guid)
 	INNER JOIN splits AS s2 ON (s2.tx_guid = transactions.guid AND s2.guid <> splits.guid)
 	INNER JOIN accounts ON (accounts.guid = s2.account_guid)
-WHERE IF(bank_transactions.vtext RLIKE '/[0-9][0-9]-[0-9][0-9]-[0-9][0-9]$', SUBSTRING(bank_transactions.vtext, 1, LENGTH(bank_transactions.vtext) - 9), bank_transactions.vtext) = {$safe_text}
+WHERE IF(bank_transactions.vtext RLIKE '/[0-9][0-9]-[0-9][0-9]-[0-9][0-9]$', SUBSTRING(bank_transactions.vtext, 1, LENGTH(bank_transactions.vtext) - 9), bank_transactions.vtext) = {$safeText}
 GROUP BY accounts.guid
 ORDER BY
 	COUNT(bank_transactions.amount) DESC,
 	MAX(DATE(transactions.post_date)) DESC
 SQL_BLOCK;
-    foreach ($db->objects($query) as $account_row) {
-        $j = '<pre>' . htmlentities(json_encode($account_row, JSON_THROW_ON_ERROR | $json_options, 512), ENT_QUOTES) . '</pre>';
+    foreach ($database->objects($query) as $accountRow) {
+        $htmlPart = '<pre>' . htmlentities(json_encode($accountRow, JSON_THROW_ON_ERROR | $jsonOptions, 512), ENT_QUOTES) . '</pre>';
         echo <<<HTML_BLOCK
-								<li>{$j}</li>
+								<li>{$htmlPart}</li>
 HTML_BLOCK;
     }
     echo <<<HTML_BLOCK

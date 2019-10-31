@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpMethodNamingConventionInspection */
 /** @noinspection PhpTooManyParametersInspection */
 declare(strict_types=1);
 /** @noinspection SpellCheckingInspection */
@@ -13,14 +13,19 @@ declare(strict_types=1);
 /** @noinspection PhpPropertyNamingConventionInspection */
 /** @noinspection PhpMethodNamingConventionInspection */
 
+namespace Puggan\GnuCashMatcher;
+
 /**
  * Class GnuCash
+ * I wonder who I copied this class from, it was a long time ago, and i done some reformating and changes since then,
+ * but thank you for the great pice to build from.
+ *
  * @property string lastTxGUID
  * @property string lastQuery
  */
 class GnuCash
 {
-    private $con;
+    private $connection;
     private $eException;
     private $sDbName;
     public $lastTxGUID;
@@ -37,15 +42,15 @@ class GnuCash
     {
         $this->sDbName = $sDbName;
         try {
-            $this->con = new PDO(
+            $this->connection = new \PDO(
                 "mysql:host=$sHostname;dbname=$sDbName",
                 $sUsername,
                 $sPassword,
-                [PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
+                [\PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8']
             );
-            $this->con->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
-            $this->eException = $e;
+            $this->connection->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        } catch (\PDOException $exception) {
+            $this->eException = $exception;
         }
     }
 
@@ -83,10 +88,10 @@ class GnuCash
         $this->lastQuery = strtr($sSql, $aParameters);
         /** @noinspection BadExceptionsProcessingInspection */
         try {
-            $q = $this->con->prepare($sSql);
-            $result = $q->execute($aParameters);
-            $query_type = explode(' ', preg_replace("#\\s+#", ' ', $sSql, 1), 2)[0];
-            switch (strtoupper($query_type)) {
+            $query = $this->connection->prepare($sSql);
+            $result = $query->execute($aParameters);
+            $queryType = explode(' ', preg_replace("#\\s+#", ' ', $sSql, 1), 2)[0];
+            switch (strtoupper($queryType)) {
                 case 'INSERT':
                     return $result;
 
@@ -105,18 +110,18 @@ class GnuCash
                 default:
                     break;
             }
-            $q->setFetchMode(PDO::FETCH_ASSOC);
+            $query->setFetchMode(\PDO::FETCH_ASSOC);
             $aReturn = [];
-            while (($aRow = $q->fetch()) !== false) {
+            while (($aRow = $query->fetch()) !== false) {
                 if ($bReturnFirst) {
                     return $aRow;
                 }
                 $aReturn[] = $aRow;
             }
             return $aReturn;
-        } catch (\PDOException $e) {
-            $this->eException = $e;
-            throw $e;
+        } catch (\PDOException $exception) {
+            $this->eException = $exception;
+            throw $exception;
         }
     }
 
@@ -197,14 +202,14 @@ SQL_BLOCK;
      */
     public function getSortedAccounts(): array
     {
-        $unsorted_accounts = array_column($this->getAccounts(), null, 'guid');
-        $sorted_accounts = [];
+        $unsortedAccounts = array_column($this->getAccounts(), null, 'guid');
+        $sortedAccounts = [];
         foreach ($this->getSortedAccountGUIDs() as $guid) {
-            if (isset($unsorted_accounts[$guid])) {
-                $sorted_accounts[] = $unsorted_accounts[$guid];
+            if (isset($unsortedAccounts[$guid])) {
+                $sortedAccounts[] = $unsortedAccounts[$guid];
             }
         }
-        return $sorted_accounts;
+        return $sortedAccounts;
     }
 
     /**
@@ -228,30 +233,30 @@ SQL_BLOCK;
      */
     public function childGUIDs($sParentGUID): array
     {
-        if(is_array($sParentGUID)) {
-            /** @var string[] $todo_guids */
-            $todo_guids = array_values($sParentGUID);
-            $todo_guids = array_combine($todo_guids, $todo_guids);
+        if(\is_array($sParentGUID)) {
+            /** @var string[] $todoGuids */
+            $todoGuids = array_values($sParentGUID);
+            $todoGuids = array_combine($todoGuids, $todoGuids);
         } else {
             /** @noinspection SuspiciousArrayElementInspection */
-            $todo_guids = [$sParentGUID => $sParentGUID];
+            $todoGuids = [$sParentGUID => $sParentGUID];
         }
-        $last_child_guids = [];
-        while($todo_guids) {
-            $guid = array_pop($todo_guids);
+        $lastChildGuids = [];
+        while($todoGuids) {
+            $guid = array_pop($todoGuids);
             $query = 'SELECT guid FROM accounts WHERE parent_guid = :parent_guid ORDER BY code, name';
             $queryData = $this->runQuery($query, [':parent_guid' => $sParentGUID]);
             if(!$queryData) {
-                $last_child_guids[$guid] = $guid;
+                $lastChildGuids[$guid] = $guid;
                 continue;
             }
-            /** @var string[] $child_guids */
-            $child_guids = array_column($queryData, 'guid');
-            foreach($child_guids as $child_guid) {
-                $todo_guids[$child_guid] = $child_guid;
+            /** @var string[] $childGuids */
+            $childGuids = array_column($queryData, 'guid');
+            foreach($childGuids as $childGuid) {
+                $todoGuids[$childGuid] = $childGuid;
             }
         }
-        return $last_child_guids;
+        return $lastChildGuids;
     }
 
     /**
@@ -354,7 +359,7 @@ SQL_BLOCK;
         if (!$sTransactionGUID) {
             return 'Failed to get a new transaction GUID.';
         }
-        if ($sDebitGUID && is_array($sDebitGUID)) {
+        if ($sDebitGUID && \is_array($sDebitGUID)) {
             $debitAmount = 0;
             $aaDebbitAccounts = [];
             foreach ($sDebitGUID as $sguid => $svalue) {
@@ -377,7 +382,7 @@ SQL_BLOCK;
             $aaDebbitAccounts[$sDebitGUID] = $aDebbitAccount;
             $aaDebbitAccounts[$sDebitGUID]['amount'] = $fAmount;
         }
-        if ($sCreditGUID && is_array($sCreditGUID)) {
+        if ($sCreditGUID && \is_array($sCreditGUID)) {
             $creditAmount = 0;
             $aaCreditAccount = [];
             foreach ($sCreditGUID as $sguid => $svalue) {
@@ -401,11 +406,11 @@ SQL_BLOCK;
             $aaCreditAccount[$sCreditGUID]['amount'] = $fAmount;
         }
 
-        if ($creditAmount != $debitAmount) {
+        if ($creditAmount !== $debitAmount) {
             return 'unbalanced';
         }
 
-        if ($aDebbitAccount['commodity_guid'] == $aCreditAccount['commodity_guid']) {
+        if ($aDebbitAccount['commodity_guid'] === $aCreditAccount['commodity_guid']) {
             $sCurrencyGUID = $aDebbitAccount['commodity_guid'];
             $sCurrencySCU = $aDebbitAccount['commodity_scu'];
         } else {
@@ -415,7 +420,7 @@ SQL_BLOCK;
         }
 
         foreach (array_keys($aaDebbitAccounts) as $aguid) {
-            if ($aaDebbitAccounts[$aguid]['commodity_guid'] == $sCurrencyGUID) {
+            if ($aaDebbitAccounts[$aguid]['commodity_guid'] === $sCurrencyGUID) {
                 $aaDebbitAccounts[$aguid]['commodity_scale'] = 1;
             } else {
                 $aDebbitPrice = $this->getCommodityPrice(
@@ -431,7 +436,7 @@ SQL_BLOCK;
             }
         }
         foreach (array_keys($aaCreditAccount) as $aguid) {
-            if ($aaCreditAccount[$aguid]['commodity_guid'] == $sCurrencyGUID) {
+            if ($aaCreditAccount[$aguid]['commodity_guid'] === $sCurrencyGUID) {
                 $aaCreditAccount[$aguid]['commodity_scale'] = 1;
             } else {
                 $aDebbitPrice = $this->getCommodityPrice(
@@ -468,12 +473,12 @@ SQL_BLOCK;
             ]
         );
 
-        $sTransactionMessage = $this->eException->getMessage();
+        $sTxMessage = $this->eException->getMessage();
         $aTransaction = $this->getTransaction($sTransactionGUID);
         if (!$aTransaction) {
             $this->runQuery('ROLLBACK');
             $sError = 'Error:' . ($this->getErrorMessage() ? ' ' . $this->getErrorMessage() . '.' : '');
-            $sError .= ' Failed to create transaction record: <strong>' . $sTransactionMessage . '</strong>';
+            $sError .= ' Failed to create transaction record: <strong>' . $sTxMessage . '</strong>';
             return $sError;
         }
 
@@ -614,7 +619,7 @@ SQL_BLOCK;
         );
         $bSet = true;
         foreach ($aTransactions as $aTransaction) {
-            if ($aTransaction['reconcile_state'] != $sReconciled) {
+            if ($aTransaction['reconcile_state'] !== $sReconciled) {
                 $bSet = false;
             }
         }
@@ -657,7 +662,7 @@ SQL_BLOCK;
             [':guid' => $sAccountGUID],
             true
         );
-        return $sNewAccountName == $aAccount['name'];
+        return $sNewAccountName === $aAccount['name'];
     }
 
     /**
@@ -671,7 +676,7 @@ SQL_BLOCK;
             return [0, 'Account has child accounts, can&rsquo;t delete.'];
         }
         $aAccount = $this->getAccountInfo($sAccountGUID);
-        if ($aAccount['account_type'] == 'ROOT') {
+        if ($aAccount['account_type'] === 'ROOT') {
             return [0, 'Can&rsquo;t delete the root account.'];
         }
         foreach ($this->getAccountTransactions($sAccountGUID) as $aTransaction) {
@@ -795,7 +800,7 @@ SQL_BLOCK;
             [':parent_guid' => $sParentAccountGUID, ':guid' => $sAccountGUID]
         );
         $aAccount = $this->getAccountInfo($sAccountGUID);
-        return $aAccount['parent_guid'] == $sParentAccountGUID;
+        return $aAccount['parent_guid'] === $sParentAccountGUID;
     }
 
     /**
@@ -814,7 +819,7 @@ SQL_BLOCK;
             [':guid' => $sTransactionGUID],
             true
         );
-        return $aTransactionInfo['description'] == $sNewDescription;
+        return $aTransactionInfo['description'] === $sNewDescription;
     }
 
     /**
@@ -844,7 +849,7 @@ SQL_BLOCK;
      * @param string $sNewDate
      * @return bool
      * @throws \PDOException
-     * @throws Exception
+     * @throws \RuntimeException
      */
     public function changeTransactionDate($sTransactionGUID, $sNewDate): bool
     {
@@ -857,9 +862,13 @@ SQL_BLOCK;
             [':guid' => $sTransactionGUID],
             true
         );
-        $oNewDate = new DateTime($sNewDate);
-        $oPostDate = new DateTime($aTransaction['post_date']);
-        $oEnterDate = new DateTime($aTransaction['enter_date']);
+        try {
+            $oNewDate = new \DateTime($sNewDate);
+            $oPostDate = new \DateTime($aTransaction['post_date']);
+            $oEnterDate = new \DateTime($aTransaction['enter_date']);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage(), $exception->getCode(), $exception);
+        }
         return $oNewDate == $oPostDate and $oNewDate == $oEnterDate;
     }
 
@@ -872,7 +881,7 @@ SQL_BLOCK;
         $aDatabases = $this->runQuery('SHOW DATABASES;');
         $aReturn = [];
         foreach ($aDatabases as $aDatabase) {
-            if (in_array($aDatabase['Database'], ['information_schema', 'performance_schema', 'mysql'])) {
+            if (\in_array($aDatabase['Database'], ['information_schema', 'performance_schema', 'mysql'])) {
                 continue;
             }
             $aReturn[] = $aDatabase['Database'];

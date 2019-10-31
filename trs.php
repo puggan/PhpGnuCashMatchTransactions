@@ -1,10 +1,10 @@
 <?php
+declare(strict_types=1);
 
+use Puggan\GnuCashMatcher\Auth;
 use Puggan\GnuCashMatcher\Models\Account;
 
-require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/token_auth.php';
-require_once __DIR__ . '/Models/Account.php';
 
 if (empty($_GET['account'])) {
     header('Location: 	accounts.php');
@@ -12,27 +12,27 @@ if (empty($_GET['account'])) {
 }
 
 $code = (int) $_GET['account'];
-$db = Auth::new_db();
+$database = Auth::newDatabase();
 
-$accounts = Account::all($db, 'code');
+$accounts = Account::all($database, 'code');
 
 if (empty($accounts[$code])) {
     header('Location: 	accounts.php');
     exit();
 }
 
-if (isset($_POST['tx_guid']) and isset($_POST['prediction_id'])) {
-    $p_parts = explode(':', $_POST['prediction_id'], 2);
-    $p_guid = $db->quote($_POST['tx_guid']);
-    $p_id = $db->quote($p_parts[0]);
-    $p_date = $db->quote($p_parts[1]);
-    $query = "UPDATE prediction_dates SET tx_guid = {$p_guid} WHERE tx_guid IS NULL AND prediction_id = {$p_id} AND prediction_date = {$p_date}";
-    $db->write($query);
+if (isset($_POST['tx_guid'], $_POST['prediction_id'])) {
+    $predictionParts = explode(':', $_POST['prediction_id'], 2);
+    $predictionGuid = $database->quote($_POST['tx_guid']);
+    $predictionId = $database->quote($predictionParts[0]);
+    $predictionDate = $database->quote($predictionParts[1]);
+    $query = "UPDATE prediction_dates SET tx_guid = {$predictionGuid} WHERE tx_guid IS NULL AND prediction_id = {$predictionId} AND prediction_date = {$predictionDate}";
+    $database->write($query);
 }
 
 $account = $accounts[$code];
 
-$aguid = $db->quote($account->guid);
+$aguid = $database->quote($account->guid);
 
 $query = <<<SQL_BLOCK
 SELECT
@@ -52,51 +52,51 @@ GROUP BY transactions.guid
 ORDER BY transactions.post_date, transactions.guid
 SQL_BLOCK;
 
-$sum = 0;
-$trs = [];
+$total = 0;
+$transactions = [];
 
-/** @var \PhpDoc\tr_sum $o */
-foreach ($db->g_objects($query, 'code') as $o) {
-    $sum += $o->mv;
-    $ovl = explode(',', $o->ov);
-    sort($ovl);
-    $c = count($ovl);
-    $td = '				<td>';
-    if ($c > 1) {
-        $td = '				<td rowspan="' . $c . '">';
+/** @var \PhpDoc\tr_sum $sums */
+foreach ($database->g_objects($query, 'code') as $sums) {
+    $total += $sums->mv;
+    $otherValuesList = explode(',', $sums->ov);
+    sort($otherValuesList);
+    $otherValuesCount = count($otherValuesList);
+    $tdHtml = '				<td>';
+    if ($otherValuesCount > 1) {
+        $tdHtml = '				<td rowspan="' . $otherValuesCount . '">';
     }
     $parts = [
         '			<tr class="real_row">',
-        $td . ($o->prediction_id ? '' : '<input name="tx_guid" type="radio" value="' . htmlentities(
-                $o->guid
+        $tdHtml . ($sums->prediction_id ? '' : '<input name="tx_guid" type="radio" value="' . htmlentities(
+                $sums->guid
             ) . '" />') . '</td>',
-        $td . htmlentities(substr($o->post_date, 0, 10)) . '</td>',
-        $td . number_format($o->mv, 2, '.', ' ') . '</td>',
-        $td . htmlentities($o->description) . '</td>',
+        $tdHtml . htmlentities(substr($sums->post_date, 0, 10)) . '</td>',
+        $tdHtml . number_format($sums->mv, 2, '.', ' ') . '</td>',
+        $tdHtml . htmlentities($sums->description) . '</td>',
     ];
-    foreach ($ovl as $l) {
-        [$lc, $lv] = explode(':', $l);
-        $parts[] = '				<td>' . htmlentities($accounts[$lc]->name) . '</td>';
-        $parts[] = '				<td>' . number_format($lv, 2, '.', ' ') . '</td>';
+    foreach ($otherValuesList as $otherValuesPair) {
+        [$otherCode, $otherValue] = explode(':', $otherValuesPair, 2);
+        $parts[] = '				<td>' . htmlentities($accounts[$otherCode]->name) . '</td>';
+        $parts[] = '				<td>' . number_format($otherValue, 2, '.', ' ') . '</td>';
         $parts[] = '         </tr>';
         $parts[] = '         <tr class="merged_row">';
     }
 
-    if ($c & 1) {
+    if ($otherValuesCount & 1) {
         array_pop($parts);
     } else {
         $parts[] = '</tr>';
     }
-    $trs[] = implode(PHP_EOL, $parts);
+    $transactions[] = implode(PHP_EOL, $parts);
 }
-$trs[] = '         <tr class="real_row"><td colspan="2">Sum:</td><td>' . number_format(
-        $sum,
+$transactions[] = '         <tr class="real_row"><td colspan="2">Sum:</td><td>' . number_format(
+        $total,
         2,
         '.',
         ' '
     ) . '</td></tr>';
 
-$prediction_trs = [];
+$predictionTrs = [];
 $query = <<<SQL_BLOCK
 SELECT
 	prediction_id,
@@ -110,40 +110,40 @@ WHERE prediction_splits.code = {$code}
 	AND prediction_dates.tx_guid IS NULL
 ORDER BY prediction_date, prediction_id
 SQL_BLOCK;
-/** @var \PhpDoc\tr_prediction $p */
-foreach ($db->g_objects($query) as $p) {
-    $sum += $p->value;
-    $prediction_trs[] = implode(
+/** @var \PhpDoc\tr_prediction $prediction */
+foreach ($database->g_objects($query) as $prediction) {
+    $total += $prediction->value;
+    $predictionTrs[] = implode(
         PHP_EOL,
         [
             '         <tr>',
             '            <td><input name="prediction_id" type="radio" value="' . htmlentities(
-                $p->prediction_id . ':' . $p->prediction_date
+                $prediction->prediction_id . ':' . $prediction->prediction_date
             ) . '" /></td>',
-            '            <td>' . htmlentities($p->prediction_date) . '</td>',
-            '            <td>' . number_format($p->value, 2, '.', ' ') . '</td>',
-            '            <td>' . htmlentities($p->name) . '</td>',
+            '            <td>' . htmlentities($prediction->prediction_date) . '</td>',
+            '            <td>' . number_format($prediction->value, 2, '.', ' ') . '</td>',
+            '            <td>' . htmlentities($prediction->name) . '</td>',
             '         </tr>',
         ]
     );
 }
 
-if ($prediction_trs) {
-    $trs[] = '			<tr><th colspan="6">Predictions</th></tr>';
-    $trs[] .= implode(PHP_EOL, $prediction_trs);
-    $trs[] = '         <tr class="real_row"><td colspan="2">Predicted Sum:</td><td>' . number_format(
-            $sum,
+if ($predictionTrs) {
+    $transactions[] = '			<tr><th colspan="6">Predictions</th></tr>';
+    $transactions[] .= implode(PHP_EOL, $predictionTrs);
+    $transactions[] = '         <tr class="real_row"><td colspan="2">Predicted Sum:</td><td>' . number_format(
+            $total,
             2,
             '.',
             ' '
         ) . '</td></tr>';
 }
 
-$account_name = htmlentities($account->name);
+$accountName = htmlentities($account->name);
 echo <<<HTML_BLOCK
 <html>
 	<head>
-		<title>Account {$account_name}</title>
+		<title>Account {$accountName}</title>
 		<style type="text/css">
 			TD {padding: 5px; text-align: right;}
 			TR.real_row TD:nth-child(2) {text-align: left;}
@@ -158,7 +158,7 @@ echo <<<HTML_BLOCK
 	</head>
 	<body>
 		<form method="post">
-		<h1>Account  {$account_name}</h1>
+		<h1>Account  {$accountName}</h1>
 		<table style="table-layout: fixed;">
 			<colgroup>
 				<col style="width: 2em;" />
@@ -181,7 +181,7 @@ echo <<<HTML_BLOCK
 			<tbody>
 
 HTML_BLOCK;
-echo implode(PHP_EOL, $trs);
+echo implode(PHP_EOL, $transactions);
 echo <<<HTML_BLOCK
 			</tbody>
 		</table>
