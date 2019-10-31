@@ -113,11 +113,13 @@ bi.init = () => {
 		}
 	}
 	for(let prio = 3; prio >= 0; prio--) {
-		if(row.prio === prio) {
-			if (selectedRows.length < 50) {
-				selectedRows.push(row);
-			} else {
-				otherRows.push(row);
+		for(const row of bi.rows) {
+			if(row.prio === prio) {
+				if (selectedRows.length < 50) {
+					selectedRows.push(row);
+				} else {
+					otherRows.push(row);
+				}
 			}
 		}
 	}
