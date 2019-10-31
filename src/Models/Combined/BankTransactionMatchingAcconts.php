@@ -1,9 +1,6 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../Interfaces/Account.php';
-require_once __DIR__ . '/../Interfaces/BankTransaction.php';
-
 namespace Puggan\GnuCashMatcher\Models\Combined;
 
 use Puggan\GnuCashMatcher\Models\Interfaces\Account;

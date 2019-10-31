@@ -1,10 +1,6 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/Combined/BankTransactionMatchingAcconts.php';
-require_once __DIR__ . '/Combined/BankTransactionMatchingSplits.php';
-require_once __DIR__ . '/Interfaces/BankTransaction.php';
-
 namespace Puggan\GnuCashMatcher\Models;
 
 use Puggan\GnuCashMatcher\Models\Combined\BankTransactionMatchingAcconts;
